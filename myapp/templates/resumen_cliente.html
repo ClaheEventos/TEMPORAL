@@ -1,0 +1,267 @@
+{% load static %}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <title>Resumen del Cliente</title>
+    <link rel="stylesheet" href="{% static 'estilo.css' %}">
+    <link rel="stylesheet" href="{% static 'resumen.css' %}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+
+<div class="resumen" id="resumen" style="background: white; padding: 20px;">
+    <p class="h1es">Resumen del Evento</p>
+
+```
+<h2>📋 Datos del Cliente</h2>
+<ul>
+    <li><strong>Nombre:</strong> {{ cliente.nombre }}</li>
+    <li><strong>DNI:</strong> {{ cliente.dni }}</li>
+    <li><strong>Tipo de evento:</strong> {{ cliente.tipo_evento }}</li>
+    <li><strong>Fecha:</strong> {{ cliente.fecha_evento }}</li>
+    <li><strong>Horario:</strong> {{ cliente.horario_evento }}</li>
+    <li><strong>Salón:</strong> {{ cliente.salon }}</li>
+</ul>
+
+<h3>📞 Teléfonos de Contacto</h3>
+{% if telefono %}
+    <p>
+        {% if telefono.numero1 %}Teléfono 1: {{ telefono.numero1 }}{% endif %}
+        {% if telefono.numero2 %}<br>Teléfono 2: {{ telefono.numero2 }}{% endif %}
+    </p>
+{% else %}
+    <p>No se registraron teléfonos</p>
+{% endif %}
+
+<h3>📝 Plan Seleccionado</h3>
+<p>{% if plan %}{{ plan.nombre }}{% else %}No se seleccionó plan{% endif %}</p>
+
+<h3>🧑‍🤝‍🧑 Cantidad de Personas</h3>
+<p>
+    {% if cantidad_personas %}
+        {{ cantidad_personas }} personas ({{ num_adultos }} adultos, {{ num_ninos }} niños)
+    {% else %}
+        No se indicó la cantidad
+    {% endif %}
+</p>
+
+<h3>👥 Personal Asignado</h3>
+<ul>
+    {% for personal in personal_items %}
+        <li>
+            {{ personal.nombre }} - Cantidad: {{ personal.cantidad }}
+            {% if personal.horas %} ({{ personal.horas }} horas){% endif %}
+        </li>
+    {% empty %}
+        <li>No se asignó personal</li>
+    {% endfor %}
+</ul>
+
+<h3>💄 Boutique</h3>
+<ul>
+    {% for item in boutique_items %}
+        <li>{{ item.nombre }}</li>
+    {% empty %}
+        <li>No se seleccionaron servicios de boutique</li>
+    {% endfor %}
+</ul>
+
+<hr>
+
+<h3>🥂 Recepción</h3>
+<ul>
+    {% for item in recepcion_items %}
+        <li>
+            {{ item.item }}
+            {% if item.observacion %} - Obs: {{ item.observacion }}{% endif %}
+        </li>
+    {% empty %}
+        <li>No hay recepción</li>
+    {% endfor %}
+</ul>
+
+<h3>🍸 Barra de Tragos</h3>
+<p>
+    {% if barra_tragos %}
+        {{ barra_tragos }}
+    {% else %}
+        No se eligió barra de tragos
+    {% endif %}
+</p>
+
+<h3>🥤 Bebidas</h3>
+<ul>
+    {% for bebida in bebidas %}
+        <li>{{ bebida.nombre }}</li>
+    {% empty %}
+        <li>No se eligieron bebidas</li>
+    {% endfor %}
+</ul>
+
+<h3>🍷 Vinos</h3>
+<ul>
+    {% for vino in vinos %}
+        <li>{{ vino.nombre }}{% if vino.observacion %} - {{ vino.observacion }}{% endif %}</li>
+    {% empty %}
+        <li>No se eligieron vinos</li>
+    {% endfor %}
+</ul>
+
+<h3>🍺 Choperas</h3>
+<ul>
+    {% for chop in choperas %}
+        <li>
+            {{ chop.sabor }}
+            {% if chop.variante %} - {{ chop.variante }}{% endif %}
+            {% if chop.observacion %} - {{ chop.observacion }}{% endif %}
+        </li>
+    {% empty %}
+        <li>No se eligieron choperas</li>
+    {% endfor %}
+</ul>
+
+<h3>🍽️ Platos</h3>
+{% if elegir_platos %}
+    <p>Plato Principal: {{ elegir_platos.plato_principal }}</p>
+    <p>Plato Infantil: {{ elegir_platos.plato_infantil }}</p>
+    <p>Aclaraciones: {{ elegir_platos.aclaraciones_alimentarias }}</p>
+    <p>Adultos: {{ elegir_platos.num_adultos }}</p>
+    <p>Niños: {{ elegir_platos.num_ninos }}</p>
+{% else %}
+    <p>No se eligieron platos aún.</p>
+{% endif %}
+
+<h3>🍕 Islas Seleccionadas</h3>
+<ul>
+    {% for isla in islas %}
+        <li>{{ isla.nombre }}</li>
+    {% empty %}
+        <li>No hay islas seleccionadas</li>
+    {% endfor %}
+</ul>
+
+<h3>🍽️ Islas Premium</h3>
+<ul>
+    {% for isla in islas_premium %}
+        <li>{{ isla.nombre }}</li>
+    {% empty %}
+        <li>No hay islas premium</li>
+    {% endfor %}
+</ul>
+
+<h3>🍰 Postres</h3>
+<ul>
+    {% for postre in postres %}
+        <li>{{ postre.nombre }}</li>
+    {% empty %}
+        <li>No hay postres</li>
+    {% endfor %}
+</ul>
+
+<h3>🍭 Mesa Dulce Premium</h3>
+<ul>
+    {% for item in mesa_dulce %}
+        <li>{{ item.nombre }}</li>
+    {% empty %}
+        <li>No hay mesa dulce premium</li>
+    {% endfor %}
+</ul>
+
+<h3>🌅 Fin de Fiesta</h3>
+<p>{% if fin_de_fiesta %}{{ fin_de_fiesta.nombre }}{% else %}No se eligió aún{% endif %}</p>
+
+<hr>
+
+<h3>🎁 Extras</h3>
+<ul>
+    {% for extra in extras %}
+        <li>{{ extra.nombre }}</li>
+    {% empty %}
+        <li>No hay extras</li>
+    {% endfor %}
+</ul>
+
+<h3>🎤 Shows</h3>
+<ul>
+    {% for show in shows %}
+        <li>{{ show.nombre }}</li>
+    {% empty %}
+        <li>No hay shows</li>
+    {% endfor %}
+</ul>
+```
+
+</div>
+
+<!-- ✅ BOTÓN DE FIRMA EN EL MISMO RESUMEN -->
+
+<hr>
+
+<div style="text-align:center; margin-top:25px;">
+
+{% if firma.estado == 'firmado' %} <div style="
+     background:#e8f5e9;
+     color:#2e7d32;
+     padding:12px;
+     border-radius:10px;
+     font-weight:bold;
+     display:inline-block;">
+✅ Evento Firmado </div>
+
+{% elif puede_firmar %} <form method="post" action="{% url 'firmar_evento' cliente.id %}">
+{% csrf_token %} <button type="submit" style="
+         background:#4caf50;
+         color:white;
+         border:none;
+         padding:12px 28px;
+         border-radius:12px;
+         font-size:16px;
+         font-weight:bold;
+         cursor:pointer;">
+✍️ Firmar Evento </button> </form>
+{% endif %}
+
+</div>
+
+<div style="text-align:center; margin-top:20px;">
+    <button onclick="descargarPDF()">📄 Descargar Resumen en PDF</button>
+</div>
+
+<div style="text-align:center; margin-top:20px;">
+    <a href="{% url 'inicio' %}">
+        <button type="button">Volver al inicio</button>
+    </a>
+</div>
+
+<script>
+function descargarPDF() {
+    const elemento = document.getElementById('resumen');
+
+    let nombreCliente = "{{ cliente.nombre|escapejs }}";
+    nombreCliente = nombreCliente
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, "_")
+        .replace(/[^\w\-]/g, "");
+
+    const opciones = {
+        margin: [0.5, 0.5, 0.5, 0.5],
+        filename: `resumen_evento_${nombreCliente}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+
+    window.scrollTo(0, 0);
+    setTimeout(() => {
+        html2pdf().set(opciones).from(elemento).save();
+    }, 300);
+}
+</script>
+
+</body>
+</html>

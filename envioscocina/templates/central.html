@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Inicio{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 20px;">
+  <div style="font-size: 18px; font-weight: 500; margin-bottom: 4px;">
+    Bienvenido, {{ user.username }}
+  </div>
+  <div style="font-size: 13px; color: var(--muted, #6b6a65);">
+    {{ user.perfil.get_rol_display }}
+    {% if user.perfil.departamento %} · {{ user.perfil.departamento }}{% endif %}
+    {% if user.perfil.salon %} · {{ user.perfil.salon }}{% endif %}
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px;">
+  {% for app in apps %}
+    <div class="card" style="padding: 20px; {% if not app.url_name %}opacity: .5;{% endif %}">
+
+      <!-- Ícono simple según tipo de app -->
+      <div style="
+        width: 40px; height: 40px; border-radius: 10px;
+        background: {% if app.icono == 'envios' %}#e6f1fb{% elif app.icono == 'stock' %}#eaf3de{% else %}#faeeda{% endif %};
+        display: flex; align-items: center; justify-content: center;
+        margin-bottom: 12px;
+      ">
+        {% if app.icono == 'envios' %}
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <rect x="2" y="4" width="16" height="12" rx="2" stroke="#185fa5" stroke-width="1.4"/>
+            <path d="M6 8h8M6 11h5" stroke="#185fa5" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+        {% elif app.icono == 'stock' %}
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M4 10l4 4 8-8" stroke="#3b6d11" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        {% else %}
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <circle cx="10" cy="10" r="6.5" stroke="#854f0b" stroke-width="1.4"/>
+            <path d="M10 7v3l2 2" stroke="#854f0b" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+        {% endif %}
+      </div>
+
+      <div style="font-size: 14px; font-weight: 500; margin-bottom: 4px;">{{ app.nombre }}</div>
+      <div style="font-size: 12px; color: var(--muted, #6b6a65); line-height: 1.4; margin-bottom: 12px;">{{ app.descripcion }}</div>
+
+      {% if app.url_name %}
+        <!-- Badge con cantidad si aplica -->
+   {% if app.badge > 0 %}
+  <div style="font-size: 11px; margin-bottom: 10px;">
+    <span class="badge badge-pendiente">
+      {{ app.badge }} pendiente{{ app.badge|pluralize }}
+    </span>
+  </div>
+{% endif %}
+        <a href="{% url app.url_name %}" class="btn btn-primary" style="width: 100%; justify-content: center;">
+          Abrir
+        </a>
+      {% else %}
+        <span class="badge badge-pendiente" style="font-size: 11px;">Próximamente</span>
+      {% endif %}
+
+    </div>
+  {% empty %}
+    <p style="color: var(--muted, #6b6a65); font-size: 13px;">No tenés aplicaciones disponibles.</p>
+  {% endfor %}
+</div>
+{% endblock %}

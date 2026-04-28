@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2>📊 Consumo del día</h2>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Producto</th>
+            <th>Total consumido</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for c in consumos %}
+        <tr>
+            <td>{{ c.producto__nombre }}</td>
+            <td>{{ c.total }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="2">No hay consumo registrado</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

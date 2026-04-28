@@ -1,0 +1,167 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Elegir Bebidas</title>
+<link rel="stylesheet" href="{% static 'estilo.css' %}">
+    <link rel="stylesheet" href="{% static 'navbar.css' %}">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+   
+    /* Estilos base para Inputs, Select y los nuevos Textareas */
+    input[type="text"], 
+    input[type="date"], 
+    select,
+    textarea {
+        padding: 15px 18px;
+        border-radius: 12px;
+        border: 2px solid rgba(255,204,0,0.3);
+        background: rgba(255,255,255,0.1);
+        color: var(--color-text-light);
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(5px);
+        width: 100%; /* Aplica ancho completo a todos */
+        margin-top: 10px; /* Separación de elementos previos */
+        box-sizing: border-box;
+    }
+
+    input[type="text"]:focus, 
+    input[type="date"]:focus, 
+    select:focus,
+    textarea:focus {
+        outline: none;
+        border-color: var(--color-gold-dark);
+        box-shadow: 0 0 20px rgba(255,204,0,0.3);
+        background: rgba(255,255,255,0.15);
+    }
+    
+    /* Estilo específico para Textarea (Observaciones) */
+    textarea {
+        min-height: 100px; /* Altura mínima para el texto de observación */
+        resize: vertical; /* Permite redimensionar solo verticalmente */
+    }
+
+    textarea::placeholder {
+        color: rgba(255,255,255,0.6);
+    }
+
+    input[type="radio"] {
+        transform: scale(1.1);
+        margin-right: 8px;
+        accent-color: var(--color-gold-dark); /* Color del radio button */
+    }
+
+    .otro-sabor {
+        display: none;
+        margin-top: 10px;
+    }
+ 
+
+</style>
+</head>
+<body>
+<nav class="navbar">
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+    <div class="nav-links" id="navLinks">
+        <a href="{% url 'agregar_telefonos' cliente_id=cliente.id %}">Teléfonos</a>
+        <a href="{% url 'elegir_plan' cliente_id=cliente.id %}">Plan</a>
+        <a href="{% url 'elegir_personal' cliente_id=cliente.id %}">Personal</a>
+        <a href="{% url 'elegir_boutique' cliente_id=cliente.id %}">Boutique</a> <!-- NUEVO LINK -->
+        <a href="{% url 'elegir_bebidas' cliente_id=cliente.id %}">Bebidas</a>
+        <a href="{% url 'elegir_islas' cliente_id=cliente.id %}">Islas</a>
+        <a href="{% url 'elegir_islas_premium' cliente_id=cliente.id %}">Islas Premium</a>
+        <a href="{% url 'elegir_barra_tragos' cliente_id=cliente.id %}">Barra de Tragos</a>
+        <a href="{% url 'elegir_platos' cliente_id=cliente.id %}">Platos</a>
+        <a href="{% url 'elegir_postres' cliente_id=cliente.id %}">Postres</a>
+        <a href="{% url 'elegir_mesa_dulce_premium' cliente_id=cliente.id %}">Mesa Dulce Premium</a>
+        <a href="{% url 'elegir_extras' cliente_id=cliente.id %}">Extras</a>
+        <a href="{% url 'elegir_shows' cliente_id=cliente.id %}">Shows</a>
+        <a href="{% url 'elegir_recepcion' cliente_id=cliente.id %}">Recepción</a>
+        <a href="{% url 'elegir_fin_de_fiesta' cliente_id=cliente.id %}">Fin de Fiesta</a>
+    </div>
+</nav
+<h1></h1>
+<h1>Elegir Bebidas</h1>
+<form method="POST">
+    {% csrf_token %}
+
+    <!-- Bebidas -->
+    <h2>Bebidas</h2>
+    <div class="opciones">
+        {% for bebida in bebidas_posibles %}
+            <label>
+                <input type="radio" name="bebidas" value="{{ bebida }}" {% if bebida_prev == bebida %}checked{% endif %}>
+                {{ bebida }}
+            </label><br>
+        {% endfor %}
+    </div>
+
+    <!-- Vinos -->
+    <h2>Vinos</h2>
+    <div class="opciones">
+        {% for vino in vinos_posibles %}
+            <label>
+                <input type="radio" name="vinos" value="{{ vino }}" {% if vino_prev == vino %}checked{% endif %}>
+                {{ vino }}
+            </label><br>
+        {% endfor %}
+        <!-- Este textarea ahora tiene el estilo unificado -->
+        <textarea name="observacion_vinos" placeholder="Observación para Vinos">{{ observacion_vinos_prev }}</textarea>
+    </div>
+
+    <!-- Choperas -->
+    <h2>Choperas</h2>
+    <div class="opciones">
+        {% for chopera in choperas_posibles %}
+            <label>
+                <input type="radio" name="choperas" value="{{ chopera }}" class="chopera-radio"
+                    {% if chopera_prev == chopera %}checked{% endif %}>
+                {{ chopera }}
+            </label><br>
+        {% endfor %}
+        <input type="text" name="otro_sabor" class="otro-sabor" placeholder="Sabor personalizado" value="{{ otro_chopera_prev }}">
+        <!-- Este textarea ahora tiene el estilo unificado -->
+        <textarea name="observacion_choperas" placeholder="Observación para Choperas">{{ observacion_chopera_prev }}</textarea>
+    </div>
+
+    <div style="text-align: center;">
+        <button type="submit">Guardar Selecciones</button>
+    </div>
+</form>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const radios = document.querySelectorAll('.chopera-radio');
+        const otroInput = document.querySelector('input[name="otro_sabor"]');
+
+        function toggleOtroInput() {
+            let isOtroSelected = false;
+            radios.forEach(radio => {
+                if(radio.checked && radio.value.toLowerCase() === 'otro') {
+                    isOtroSelected = true;
+                }
+            });
+
+            if (isOtroSelected) {
+                otroInput.style.display = 'block';
+            } else {
+                otroInput.style.display = 'none';
+            }
+        }
+
+        radios.forEach(radio => {
+            radio.addEventListener('change', toggleOtroInput);
+        });
+
+        // Llamar en carga para manejar el estado previo
+        toggleOtroInput(); 
+    });
+
+    function toggleMenu() {
+        document.getElementById('navLinks').classList.toggle('show');
+    }
+</script>
+
+</body>

@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+{% block title %}Nuevo envío{% endblock %}
+
+{% block breadcrumb %}
+  <span class="topbar-sep">/</span>
+  <a href="{% url 'lista_envios' %}" class="topbar-page" style="text-decoration:none;">Envíos</a>
+  <span class="topbar-sep">/</span>
+  <span class="topbar-page">Nuevo</span>
+{% endblock %}
+
+{% block content %}
+<style>
+  .tipo-grupo {
+    margin-bottom: 25px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .tipo-header {
+    background: #34495e;
+    color: white;
+    padding: 10px 15px;
+    font-weight: bold;
+    font-size: 14px;
+  }
+  .tipo-tabla {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .tipo-tabla th {
+    background: #ecf0f1;
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 12px;
+    border-bottom: 1px solid #ddd;
+  }
+  .tipo-tabla td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+  }
+  .tipo-tabla th:nth-child(2),
+.tipo-tabla th:nth-child(3),
+.tipo-tabla td:nth-child(2),
+.tipo-tabla td:nth-child(3) {
+    display: none;
+}
+  .stock-badge {
+    font-weight: 600;
+    color: #2e7d32;
+    font-size: 16px;
+  }
+  .input-usar {
+    width: 80px;
+    text-align: center;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  .input-enviar {
+    width: 100px;
+    text-align: center;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  .max-text {
+    font-size: 10px;
+    color: #999;
+    display: block;
+  }
+</style>
+
+<div class="card" style="max-width: 1200px;">
+  <div class="card-header">
+    <span class="card-title">Nuevo envío</span>
+  </div>
+  <div class="card-body">
+    <form method="post" id="form-envio">
+      {% csrf_token %}
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="destino">Salón destino</label>
+          <select name="destino" id="destino" onchange="cargarStock(this.value)">
+            <option value="">— elegí un salón —</option>
+            {% for salon in salones %}
+              <option value="{{ salon.id }}">{{ salon.nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="descripcion">Descripción (opcional)</label>
+          <input type="text" name="descripcion" id="descripcion" placeholder="Ej: pedido urgente mesa 4">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="fecha_evento">Fecha del evento</label>
+        <input type="datetime-local" name="fecha_evento" id="fecha_evento">
+        <small style="color: #6b6a65; font-size: 11px;">Fecha y hora del evento para este envío</small>
+      </div>
+
+      <div id="stock-alert" style="display: none; background: #faeeda; border: 0.5px solid #854f0b; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #854f0b; margin-bottom: 16px;">
+        <span id="stock-alert-text"></span>
+      </div>
+
+      <div id="productos-section" style="display: none;">
+        <div id="productos-container"></div>
+        <small style="display: block; margin-top: 10px; color: #6b6a65;">
+          💡 <strong>Tips:</strong><br>
+          • <strong>"Usar del stock"</strong>: productos que YA están en el salón y se van a usar en el evento.<br>
+          • <strong>"Enviar nuevos"</strong>: productos adicionales que hay que enviar desde cocina.<br>
+          • <strong>Bebidas (🍹)</strong>: lo que sobra vuelve al stock.<br>
+          • <strong>Comida (🍔)</strong>: lo que sobra se descarta.
+        </small>
+      </div>
+
+      <div id="productos-placeholder" style="padding: 28px; text-align: center; color: #6b6a65; font-size: 13px; border: 0.5px dashed rgba(0,0,0,.2); border-radius: 8px; margin-bottom: 16px;">
+        Elegí un salón para ver el stock actual y crear el envío
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px;">
+        <a href="{% url 'lista_envios' %}" class="btn btn-secondary">Cancelar</a>
+        <button type="submit" class="btn btn-primary" id="btn-submit" disabled>Crear envío</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const API_URL = "{% url 'api_stock_salon' 0 %}".replace('/0/', '/');
+
+function extraerNumero(texto) {
+  if (!texto) return 0;
+  const match = texto.match(/(\d+(?:[.,]\d+)?)/);
+  return match ? parseFloat(match[1].replace(',', '.')) : 0;
+}
+
+async function cargarStock(salonId) {
+  const container = document.getElementById('productos-container');
+  const section = document.getElementById('productos-section');
+  const placeholder = document.getElementById('productos-placeholder');
+  const alertDiv = document.getElementById('stock-alert');
+  const alertText = document.getElementById('stock-alert-text');
+  const btnSubmit = document.getElementById('btn-submit');
+
+  if (!salonId) {
+    section.style.display = 'none';
+    placeholder.style.display = 'block';
+    alertDiv.style.display = 'none';
+    btnSubmit.disabled = true;
+    return;
+  }
+
+  container.innerHTML = '<div style="padding:20px;text-align:center;">Cargando stock…</div>';
+  section.style.display = 'block';
+  placeholder.style.display = 'none';
+
+  try {
+    const res = await fetch(API_URL + salonId + '/');
+    const data = await res.json();
+
+    // Agrupar por tipo.nombre
+    const grupos = {};
+    data.productos.forEach(p => {
+      // Obtener el nombre del tipo (puede venir como p.tipo o p.tipo__nombre)
+      const tipoNombre = p.tipo_nombre || p.tipo || 'OTROS';
+      if (!grupos[tipoNombre]) grupos[tipoNombre] = [];
+      grupos[tipoNombre].push(p);
+    });
+
+    let html = '';
+    let productosConStock = [];
+
+    // Orden fijo de tipos
+    const ordenTipos = ['Recepción', 'Isla Cheddar', 'Isla Campestre', 'Isla Sushi', 'Arrollado', 'Isla Pasta', 'Tartaletas', 'Snacks', 'Stand de Golosinas', 'Pernil', 'Isla Verduras', 'Extras'];
+    
+    for (const tipoNombre of ordenTipos) {
+      const productos = grupos[tipoNombre];
+      if (!productos || productos.length === 0) continue;
+      
+      html += `<div class="tipo-grupo">`;
+      html += `<div class="tipo-header">🍔 ${tipoNombre.toUpperCase()}</div>`;
+      html += `<table class="tipo-tabla">`;
+      html += `<thead><tr><th>Producto</th><th>Stock actual</th><th>🎯 Usar del stock</th><th>📦 Enviar nuevos</th></tr></thead>`;
+      html += `<tbody>`;
+
+      productos.forEach(p => {
+        const tieneStock = p.stock_salon && p.stock_salon !== '0' && p.stock_salon !== '0 unidades' && p.stock_salon !== '0g';
+        const stockNumero = extraerNumero(p.stock_salon);
+        
+        if (tieneStock && stockNumero > 0) {
+          productosConStock.push(`${p.nombre} (${p.stock_salon})`);
+        }
+
+        html += `<tr>
+          <td><strong>${p.nombre}</strong></td>
+          <td><span class="stock-badge">📦 ${p.stock_salon || '0'}</span></td>
+          <td>
+            <input type="number" 
+                   name="usar_stock_${p.id}" 
+                   value="0" 
+                   min="0" 
+                   max="${stockNumero}" 
+                   class="input-usar"
+                   ${!tieneStock ? 'disabled' : ''}>
+            <span class="max-text">Máx: ${stockNumero}</span>
+            <input type="hidden" name="producto_id_${p.id}" value="${p.id}">
+          </td>
+          <td>
+            <input type="text" 
+                   name="enviar_${p.id}" 
+                   value="0" 
+                   class="input-enviar" 
+                   placeholder="Ej: 10">
+            <input type="hidden" name="producto" value="${p.id}">
+            <input type="hidden" name="check_incluido" value="on">
+          </td>
+        </tr>`;
+      });
+
+      html += `</tbody></table></div>`;
+    }
+
+    container.innerHTML = html;
+
+    if (productosConStock.length > 0) {
+      alertText.innerHTML = `
+        ⚠️ <strong>${data.salon}</strong> ya tiene stock de: ${productosConStock.join(', ')}.<br><br>
+        📌 <strong>Recomendación:</strong><br>
+        • <strong>Bebidas (🍹)</strong>: Usá el stock existente primero.<br>
+        • <strong>Comida (🍔)</strong>: Enviá solo lo necesario (la comida no se reusa).
+      `;
+      alertDiv.style.display = 'block';
+    } else {
+      alertDiv.style.display = 'none';
+    }
+
+    btnSubmit.disabled = false;
+
+  } catch (e) {
+    console.error(e);
+    container.innerHTML = '<div style="padding:20px;text-align:center;color:red;">Error al cargar el stock</div>';
+  }
+}
+
+document.getElementById('form-envio').addEventListener('submit', function(e) {
+  const usarStockInputs = document.querySelectorAll('.input-usar');
+  const enviarInputs = document.querySelectorAll('.input-enviar');
+  
+  let tieneAlgo = false;
+  
+  usarStockInputs.forEach(input => {
+    if (!input.disabled) {
+      const val = parseInt(input.value) || 0;
+      if (val > 0) tieneAlgo = true;
+    }
+  });
+  
+  enviarInputs.forEach(input => {
+    const val = input.value.trim();
+    if (val !== '' && val !== '0' && val !== '0g' && val !== '0kg') {
+      tieneAlgo = true;
+    }
+  });
+  
+  if (!tieneAlgo) {
+    e.preventDefault();
+    alert('Tenés que usar stock existente O enviar nuevos productos (o ambos).');
+  }
+});
+</script>
+{% endblock %}

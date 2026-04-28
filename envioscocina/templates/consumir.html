@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2>📦 Marcar lo que SOBRÓ después del evento</h2>
+
+<div style="margin-bottom: 20px;">
+    <p><strong>Salón:</strong> {{ user.perfil.salon.nombre }}</p>
+    <div style="background: #f0f0f0; padding: 10px; border-radius: 5px;">
+        <p><strong>📌 Reglas:</strong></p>
+        <ul style="margin: 0;">
+            <li>🍹 <strong>Bebidas</strong> (reusables): lo que sobra <span style="color: green;">VUELVE AL STOCK</span> para el próximo evento</li>
+            <li>🍔 <strong>Comida</strong> (no reusables): lo que sobra <span style="color: red;">SE DESCARTA</span> (stock = 0)</li>
+        </ul>
+    </div>
+</div>
+
+<table class="table table-bordered" style="width:100%; border-collapse: collapse;">
+    <thead>
+        <tr>
+            <th>Producto</th>
+            <th>Tipo</th>
+            <th>Stock actual</th>
+            <th>✨ ¿Cuánto SOBRÓ?</th>
+            <th>Qué pasa con lo sobrante</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in stock %}
+        <tr style="background-color: {% if item.producto.se_puede_reusar %}#e8f5e9{% else %}#ffebee{% endif %};">
+            <td style="padding: 10px;">
+                {{ item.producto.nombre }}
+            </td>
+            <td style="padding: 10px;">
+                {% if item.producto.se_puede_reusar %}
+                    🍹 <strong>Bebida (reusable)</strong>
+                {% else %}
+                    🍔 <strong>Comida (no reusable)</strong>
+                {% endif %}
+            </td>
+            <td style="padding: 10px; font-weight: bold;">
+                {{ item.cantidad }}
+            </td>
+            <td style="padding: 10px;">
+                <form method="post" action="{% url 'consumir_producto' %}" style="display: flex; gap: 5px; flex-wrap: wrap;">
+                    {% csrf_token %}
+                    <input type="hidden" name="producto" value="{{ item.producto.id }}">
+                    <input type="text" 
+                           name="sobrante" 
+                           placeholder="Ej: 8 unidades, 5 botellas" 
+                           required
+                           style="width: 120px; padding: 5px;">
+                    <input type="text" 
+                           name="comentario" 
+                           placeholder="Observación"
+                           style="width: 120px; padding: 5px;">
+                    <button type="submit" style="padding: 5px 10px;">
+                        Guardar
+                    </button>
+                </form>
+            </td>
+            <td style="padding: 10px;">
+                {% if item.producto.se_puede_reusar %}
+                    ✅ <span style="color: green;">Vuelve al stock</span>
+                {% else %}
+                    ❌ <span style="color: red;">Se descarta (stock = 0)</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5" style="padding: 40px; text-align: center;">
+                No hay productos con stock en este salón.
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

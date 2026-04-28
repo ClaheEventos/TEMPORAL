@@ -1,0 +1,45 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Cantidades para {{ cliente.nombre }}</title>
+    <link rel="stylesheet" href="{% static 'estilo.css' %}">
+          <link rel="stylesheet" href="{% static 'navbar.css' %}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+<nav class="navbar">
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+    <div class="nav-links" id="navLinks">
+        <a href="{% url 'agregar_telefonos' cliente_id=cliente.id %}">Teléfonos</a>
+        <a href="{% url 'elegir_plan' cliente_id=cliente.id %}">Plan</a>
+        <a href="{% url 'elegir_bebidas' cliente_id=cliente.id %}">Bebidas</a>        <a href="{% url 'elegir_islas' cliente_id=cliente.id %}">Islas</a>
+        <a href="{% url 'elegir_islas_premium' cliente_id=cliente.id %}">Islas Premium</a>
+        <a href="{% url 'elegir_barra_tragos' cliente_id=cliente.id %}">Barra de Tragos</a>
+        <a href="{% url 'elegir_platos' cliente_id=cliente.id %}">Platos</a>
+        <a href="{% url 'elegir_postres' cliente_id=cliente.id %}">Postres</a>
+        <a href="{% url 'elegir_mesa_dulce_premium' cliente_id=cliente.id %}">Mesa Dulce Premium</a>
+        <a href="{% url 'elegir_extras' cliente_id=cliente.id %}">Extras</a>
+        <a href="{% url 'elegir_shows' cliente_id=cliente.id %}">Shows</a>
+        <a href="{% url 'elegir_recepcion' cliente_id=cliente.id %}">Recepción</a>
+        <a href="{% url 'elegir_fin_de_fiesta' cliente_id=cliente.id %}">Fin de Fiesta</a>
+    </div>
+</nav>
+    <form method="post">
+        {% csrf_token %}
+        <div>
+            <label for="cantidad">Cantidad de personas:</label>
+            <input type="number" id="cantidad" name="cantidad"
+                   value="{{ cantidad_actual }}" min="0" required>
+        </div>
+        <button type="submit">Guardar y continuar</button>
+    </form>
+<script>
+    function toggleMenu() {
+        document.getElementById('navLinks').classList.toggle('show');
+    }
+</script>
+</body>
+</html>

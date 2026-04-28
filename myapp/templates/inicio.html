@@ -1,0 +1,146 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Buscar Clientes</title>
+    <link rel="stylesheet" href="{% static 'estilo.css' %}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+       
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>O.D.E</h1>
+    <h4>(ORGANISACION DE EVENTOS)</h4>
+     <h5>V0.9</h5>
+        <h1>Buscar Clientes</h1>
+        <div class="header">
+            
+           <div class="crear-cliente-header">
+    {% if mostrar_botones %}
+        <a href="{% url 'crear_cliente' %}" class="btn-crear">
+            + Crear nuevo cliente
+        </a>
+    {% endif %}
+</div>
+        </div>
+
+        <div class="search-section">
+            <form method="GET" class="search-form">
+                <!-- Campo DNI oculto -->
+                <div class="form-group" id="dni-group" style="display: none;">
+                    <label for="dni">DNI del Cliente</label>
+                    <input type="text" 
+                           id="dni" 
+                           name="dni" 
+                           placeholder="Ingrese DNI" 
+                           value="{{ filtros.dni }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="fecha_evento">Fecha del Evento</label>
+                    <input type="date" 
+                           id="fecha_evento"
+                           name="fecha_evento"
+                           value="{% if filtros.fecha_evento %}{{ filtros.fecha_evento|date:'Y-m-d' }}{% endif %}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="salon">Salón</label>
+                    <select name="salon" id="salon">
+                        <option value="">-- Selecciona un salón --</option>
+                        {% for s in salones %}
+                            <option value="{{ s }}" {% if filtros.salon == s %}selected{% endif %}>{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <button type="submit" class="btn-buscar">
+                     Buscar Clientes
+                </button>
+
+                <!-- Botón para mostrar búsqueda avanzada -->
+                <button type="button" class="btn-toggle" onclick="toggleDNI()">
+                    Ver más opciones
+                </button>
+            </form>
+        </div>
+
+        {% if mensaje %}
+            <div class="mensaje error">{{ mensaje }}</div>
+        {% endif %}
+
+        {% if clientes_encontrados %}
+            <div class="resultados">
+                {% for cliente in clientes_encontrados %}
+                    <div class="cliente-card">
+                        <div class="cliente-info">
+                            <h4>{{ cliente.dni }} - {{ cliente.nombre }}</h4>
+                            <p><strong>Fecha:</strong> {{ cliente.fecha_evento|date:"d/m/Y" }}</p>
+                            <p><strong>Salón:</strong> {{ cliente.salon }}</p>
+                        </div>
+                        <a class="ver-mas-btn" href="{% url 'resumen_cliente' cliente.id %}">Ver detalles</a>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            {% if request.GET.dni or request.GET.fecha_evento or request.GET.salon %}
+                <div class="no-results">
+                    <h3>No se encontraron clientes</h3>
+                    <p>Intenta con otros criterios de búsqueda</p>
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    <script>
+        const inputFecha = document.querySelector('input[name="fecha_evento"]');
+
+        // Mostrar fecha en DD/MM/YYYY
+        if(inputFecha.value){
+            const partes = inputFecha.value.split('-'); // [YYYY, MM, DD]
+            if(partes.length === 3){
+                inputFecha.value = `${partes[2]}/${partes[1]}/${partes[0]}`;
+            }
+        }
+
+        // Antes de enviar el formulario, convertir a YYYY-MM-DD para que Django lo entienda
+        inputFecha.form.addEventListener('submit', function(e){
+            const val = inputFecha.value.split('/');
+            if(val.length === 3){
+                inputFecha.value = `${val[2]}-${val[1]}-${val[0]}`; // YYYY-MM-DD
+            }
+        });
+
+        // Función para mostrar/ocultar campo DNI
+        function toggleDNI() {
+            const dniGroup = document.getElementById('dni-group');
+            const toggleBtn = document.querySelector('.btn-toggle');
+            
+            if (dniGroup.style.display === 'none' || dniGroup.style.display === '') {
+                dniGroup.style.display = 'flex';
+                toggleBtn.textContent = 'Ocultar opciones';
+                toggleBtn.style.background = 'rgba(255,204,0,0.1)';
+            } else {
+                dniGroup.style.display = 'none';
+                toggleBtn.textContent = 'Ver más opciones';
+                toggleBtn.style.background = 'transparent';
+            }
+        }
+
+        // Efecto de enfoque suave para los inputs
+        const inputs = document.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.addEventListener('focus', function() {
+                this.parentNode.style.transform = 'scale(1.02)';
+            });
+            
+            input.addEventListener('blur', function() {
+                this.parentNode.style.transform = 'scale(1)';
+            });
+        });
+    </script>
+</body>
+</html>

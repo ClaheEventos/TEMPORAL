@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% block title %}Envío #{{ envio.id }}{% endblock %}
+
+{% block breadcrumb %}
+  <span class="topbar-sep">/</span>
+  <a href="{% url 'lista_envios' %}" class="topbar-page">Envíos</a>
+  <span class="topbar-sep">/</span>
+  <span class="topbar-page">#{{ envio.id }}</span>
+{% endblock %}
+
+{% block content %}
+<style>
+  /* ESTILO HOJA DE RUTA PDF - SOLO VISUAL */
+  .ruta-card {
+    background: white;
+    border: 1px solid #000;
+    font-family: 'Courier New', monospace;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  .ruta-header {
+    background: #000;
+    color: white;
+    text-align: center;
+    padding: 10px;
+    font-size: 14px;
+    font-weight: bold;
+  }
+  .ruta-info {
+    background: #f0f0f0;
+    padding: 10px 15px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 25px;
+    border-bottom: 1px solid #000;
+    font-size: 11px;
+  }
+  .ruta-info strong {
+    font-weight: bold;
+  }
+  .ruta-seccion {
+    border-bottom: 1px solid #000;
+  }
+  .ruta-seccion-titulo {
+    background: #ddd;
+    padding: 6px 15px;
+    font-weight: bold;
+    font-size: 12px;
+    text-transform: uppercase;
+  }
+  .ruta-tabla {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+  }
+  .ruta-tabla th {
+    background: #ccc;
+    padding: 8px 12px;
+    text-align: left;
+    border-right: 1px solid #999;
+  }
+  .ruta-tabla td {
+    padding: 8px 12px;
+    border-bottom: 0.5px solid #eee;
+  }
+  .badge-pdf {
+    display: inline-block;
+    padding: 2px 10px;
+    font-size: 10px;
+    border: 1px solid;
+  }
+  .badge-pendiente { background: #faeeda; color: #854f0b; border-color: #854f0b; }
+  .badge-enviado { background: #e6f1fb; color: #185fa5; border-color: #185fa5; }
+  .badge-aceptado { background: #eaf3de; color: #3b6d11; border-color: #3b6d11; }
+  .badge-rechazado { background: #fcebeb; color: #a32d2d; border-color: #a32d2d; }
+  .ruta-footer {
+    padding: 12px 15px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    border-top: 1px solid #000;
+    background: #f5f5f5;
+  }
+  .btn-ruta {
+    padding: 5px 16px;
+    font-family: monospace;
+    font-size: 11px;
+    border: 1px solid #000;
+    background: white;
+    cursor: pointer;
+    text-decoration: none;
+    color: black;
+  }
+  .btn-ruta-primary { background: #000; color: white; }
+  .btn-ruta-success { background: #eaf3de; border-color: #3b6d11; color: #3b6d11; }
+  .btn-ruta-danger { background: #fcebeb; border-color: #a32d2d; color: #a32d2d; }
+  textarea {
+    font-family: monospace;
+    font-size: 11px;
+    border: 1px solid #999;
+    padding: 5px;
+    transition: border-color 0.2s;
+  }
+  textarea.obs-error {
+    border-color: #a32d2d !important;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(163, 45, 45, 0.2);
+  }
+  .obs-hint {
+    font-family: monospace;
+    font-size: 10px;
+    color: #a32d2d;
+    display: none;
+    margin-top: 3px;
+  }
+  .obs-hint.visible {
+    display: block;
+  }
+</style>
+
+<div class="ruta-card">
+  <div class="ruta-header">HOJA DE RUTA - ENVÍO #{{ envio.id }}</div>
+
+  <div class="ruta-info">
+    <div><strong>ORIGEN:</strong> {{ envio.origen }}</div>
+    <div><strong>DESTINO:</strong> {{ envio.destino }}</div>
+    <div><strong>FECHA:</strong> {{ envio.fecha_creacion|date:"d/m/Y H:i" }}</div>
+    <div><strong>ESTADO:</strong> <span class="badge-pdf badge-{{ envio.estado }}">{{ envio.get_estado_display }}</span></div>
+    {% if envio.fecha_evento %}<div><strong>EVENTO:</strong> {{ envio.fecha_evento|date:"d/m/Y H:i" }}</div>{% endif %}
+    {% if envio.descripcion %}<div><strong>OBS:</strong> {{ envio.descripcion }}</div>{% endif %}
+  </div>
+
+  <div class="ruta-seccion">
+    <div class="ruta-seccion-titulo">PRODUCTOS</div>
+    <table class="ruta-tabla">
+      <thead>
+        <tr><th>✓</th><th>PRODUCTO</th><th>CANTIDAD</th><th>DEVOLUCIÓN</th></tr>
+      </thead>
+      <tbody>
+        {% for d in envio.detalles.all %}
+        <tr>
+          <td style="text-align:center">{% if d.check_incluido %}✓{% else %}✗{% endif %}</td>
+          <td>
+            <strong>{{ d.producto.nombre }}</strong>
+            {% if d.producto.cantidad_gramos %}<br><span style="font-size:9px;color:#666;">{{ d.producto.cantidad_gramos }}</span>{% endif %}
+          </td>
+          <td>{{ d.cantidad|default:"-" }}</td>
+          <td>{% if d.producto.es_devolvible %}✓ Sí{% else %}✗ No{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if envio.observacion %}
+  <div class="ruta-seccion">
+    <div class="ruta-seccion-titulo">RESPUESTA DEL SALÓN</div>
+    <div style="padding: 10px 15px; font-size: 11px;">{{ envio.observacion }}</div>
+  </div>
+  {% endif %}
+
+  <div class="ruta-footer">
+    <a href="{% url 'lista_envios' %}" class="btn-ruta">VOLVER</a>
+
+    {% if user.perfil.rol == 'departamento' and envio.estado == 'pendiente' %}
+      <form method="post" action="{% url 'enviar_envio' envio.id %}" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn-ruta btn-ruta-primary">ENVIAR</button>
+      </form>
+    {% endif %}
+
+    {% if user.perfil.rol == 'salon' and envio.estado == 'enviado' %}
+      <div style="display:flex; gap:10px; align-items:flex-start;">
+
+        <div style="display:flex; flex-direction:column;">
+          <textarea
+            id="obs"
+            rows="2"
+            placeholder="Observación (obligatoria para rechazar)"
+            style="width:260px;"
+          ></textarea>
+          <span class="obs-hint" id="obs-hint">⚠️ Completá la observación antes de rechazar.</span>
+        </div>
+
+        <!-- RECHAZAR: requiere observación obligatoria -->
+        <form method="post" action="{% url 'rechazar_envio' envio.id %}" style="display:inline;" id="form-rechazar">
+          {% csrf_token %}
+          <input type="hidden" name="observacion" id="obs-rechazar">
+          <button
+            type="button"
+            class="btn-ruta btn-ruta-danger"
+            onclick="enviarRechazo()"
+          >FALTA DE PRODUCTOS</button>
+        </form>
+
+        <!-- ACEPTAR: observación opcional -->
+        <form method="post" action="{% url 'aceptar_envio' envio.id %}" style="display:inline;">
+          {% csrf_token %}
+          <input type="hidden" name="observacion" id="obs-aceptar">
+          <button
+            type="submit"
+            class="btn-ruta btn-ruta-success"
+            onclick="document.getElementById('obs-aceptar').value=document.getElementById('obs').value"
+          >ACEPTAR</button>
+        </form>
+
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if user.perfil.rol == 'salon' and envio.estado == 'enviado' %}
+<script>
+  function enviarRechazo() {
+    var obs = document.getElementById('obs');
+    var hint = document.getElementById('obs-hint');
+    var texto = obs.value.trim();
+
+    if (!texto) {
+      // Mostrar error visual
+      obs.classList.add('obs-error');
+      hint.classList.add('visible');
+      obs.focus();
+      return;
+    }
+
+    // Todo OK: limpiar error, copiar valor y enviar
+    obs.classList.remove('obs-error');
+    hint.classList.remove('visible');
+    document.getElementById('obs-rechazar').value = texto;
+    document.getElementById('form-rechazar').submit();
+  }
+
+  // Limpiar el error visual cuando el usuario empieza a escribir
+  document.getElementById('obs').addEventListener('input', function () {
+    this.classList.remove('obs-error');
+    document.getElementById('obs-hint').classList.remove('visible');
+  });
+</script>
+{% endif %}
+
+{% endblock %}

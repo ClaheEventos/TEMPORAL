@@ -1,0 +1,210 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <title>Elegir Extras para {{ cliente.nombre }}</title>
+    <link rel="stylesheet" href="{% static 'estilo.css' %}">
+    <link rel="stylesheet" href="{% static 'navbar.css' %}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<nav class="navbar">
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+    <div class="nav-links" id="navLinks">
+        <a href="{% url 'agregar_telefonos' cliente_id=cliente.id %}">Teléfonos</a>
+        <a href="{% url 'elegir_plan' cliente_id=cliente.id %}">Plan</a>
+        <a href="{% url 'elegir_personal' cliente_id=cliente.id %}">Personal</a>
+        <a href="{% url 'elegir_boutique' cliente_id=cliente.id %}">Boutique</a> <!-- NUEVO LINK -->
+        <a href="{% url 'elegir_bebidas' cliente_id=cliente.id %}">Bebidas</a>
+        <a href="{% url 'elegir_islas' cliente_id=cliente.id %}">Islas</a>
+        <a href="{% url 'elegir_islas_premium' cliente_id=cliente.id %}">Islas Premium</a>
+        <a href="{% url 'elegir_barra_tragos' cliente_id=cliente.id %}">Barra de Tragos</a>
+        <a href="{% url 'elegir_platos' cliente_id=cliente.id %}">Platos</a>
+        <a href="{% url 'elegir_postres' cliente_id=cliente.id %}">Postres</a>
+        <a href="{% url 'elegir_mesa_dulce_premium' cliente_id=cliente.id %}">Mesa Dulce Premium</a>
+        <a href="{% url 'elegir_extras' cliente_id=cliente.id %}">Extras</a>
+        <a href="{% url 'elegir_shows' cliente_id=cliente.id %}">Shows</a>
+        <a href="{% url 'elegir_recepcion' cliente_id=cliente.id %}">Recepción</a>
+        <a href="{% url 'elegir_fin_de_fiesta' cliente_id=cliente.id %}">Fin de Fiesta</a>
+    </div>
+</nav
+<h1></h1>
+<h1>Extras</h1>
+<form method="post">
+    {% csrf_token %}
+
+    {% for extra in extras_posibles %}
+        <hr style="width: 100%; border: 1px solid #ffeb3b; margin: 30px auto;" />
+        <div style="margin-bottom: 10px;">
+            <label>
+                <input type="checkbox" name="extras" value="{{ extra }}"
+                       {% if extra in extras_ya_elegidos %}checked{% endif %}>
+                {{ extra }}
+            </label>
+
+            <!-- Campo detalle para " letras luminosas" -->
+            {% if extra == "letras luminosas" %}
+                <input type="text" name="detalle_letras"
+                       id="campoLetras"
+                       placeholder="Ingrese las letras (ej: LOVE)"
+                       style="display:none; margin-left: 10px;"
+                       value="{{ detalle_letras_ya }}">
+            
+            <!-- Campo detalle para "chispas frías" -->
+            {% elif extra == "chispas frías" %}
+                <input type="text" name="detalle_chispas"
+                       id="campoChispas"
+                       placeholder="Ingrese detalle de chispas frías"
+                       style="display:none; margin-left: 10px;"
+                       value="{{ detalle_chispas_ya }}">
+            
+            <!-- Campo detalle para "Arco de globos" -->
+            {% elif extra == "Arco de globos" %}
+                <input type="text" name="detalle_arco"
+                       id="campoArco"
+                       placeholder="Ingrese el color del arco de globos"
+                       style="display:none; margin-left: 10px;"
+                       value="{{ detalle_arco_ya }}">
+
+            {% elif extra == "Medio arco" %}
+                <input type="text" name="detalle_medio"
+                      id="campoMedio"
+                      placeholder="Ingrese el color del medio arco"
+                      style="display:none; margin-left: 10px;"
+                     value="{{ detalle_medio_ya }}">
+            {% elif extra == "Torta" %}
+                <input type="text" name="detalle_torta"
+                      id="campoTorta"
+                      placeholder="Ingrese detalle de la torta"
+                      style="display:none; margin-left: 10px;"
+                      value="{{ detalle_torta_ya }}">
+
+           {% elif extra == "Shimer" %}
+               <input type="text" name="detalle_shimer"
+                     id="campoShimer"
+                     placeholder="Ingrese detalle de Shimer"
+                     style="display:none; margin-left: 10px;"
+                     value="{{ detalle_shimer_ya }}">
+
+            {% elif extra == "Detalle especial" %}
+                <input type="text" name="detalle_especial"
+                    id="campoEspecial"
+                    placeholder="Ingrese cualquier detalle extra"
+                    style="display:none; margin-left: 10px;"
+                    value="{{ detalle_especial_ya }}">
+                             {% endif %}
+
+                    </div>
+
+    {% endfor %}
+
+    <hr style="width: 100%; border: 1px solid #ffeb3b; margin: 30px auto;" />
+
+    <div style="display: flex; justify-content: center; gap: 20px; margin-top: 20px;">
+        <button type="button" onclick="history.back()">← Atrás</button>
+        <button type="submit">Continuar</button>
+    </div>
+</form>
+
+<script>
+    
+    function toggleMenu() {
+        document.getElementById('navLinks').classList.toggle('show');
+    }
+
+document.addEventListener("DOMContentLoaded", function () {
+    // Letras
+    const checkLetras = document.querySelector('input[value="letras luminosas"]');
+    const campoLetras = document.getElementById("campoLetras");
+
+    if (checkLetras && campoLetras) {
+        function toggleCampoLetras() {
+            campoLetras.style.display = checkLetras.checked ? "inline-block" : "none";
+            if (!checkLetras.checked) campoLetras.value = "";
+        }
+        checkLetras.addEventListener("change", toggleCampoLetras);
+        toggleCampoLetras();
+    }
+
+    // Chispas frías
+    const checkChispas = document.querySelector('input[value="chispas frías"]');
+    const campoChispas = document.getElementById("campoChispas");
+
+    if (checkChispas && campoChispas) {
+        function toggleCampoChispas() {
+            campoChispas.style.display = checkChispas.checked ? "inline-block" : "none";
+            if (!checkChispas.checked) campoChispas.value = "";
+        }
+        checkChispas.addEventListener("change", toggleCampoChispas);
+        toggleCampoChispas();
+    }
+
+    // Arco de globos
+    const checkArco = document.querySelector('input[value="Arco de globos"]');
+    const campoArco = document.getElementById("campoArco");
+
+    if (checkArco && campoArco) {
+        function toggleCampoArco() {
+            campoArco.style.display = checkArco.checked ? "inline-block" : "none";
+            if (!checkArco.checked) campoArco.value = "";
+        }
+        checkArco.addEventListener("change", toggleCampoArco);
+        toggleCampoArco();
+    }
+    // Medio arco
+const checkMedio = document.querySelector('input[value="Medio arco"]');
+const campoMedio = document.getElementById("campoMedio");
+
+if (checkMedio && campoMedio) {
+    function toggleCampoMedio() {
+        campoMedio.style.display = checkMedio.checked ? "inline-block" : "none";
+        if (!checkMedio.checked) campoMedio.value = "";
+    }
+    checkMedio.addEventListener("change", toggleCampoMedio);
+    toggleCampoMedio();
+}
+const checkTorta = document.querySelector('input[value="Torta"]');
+const campoTorta = document.getElementById("campoTorta");
+
+if (checkTorta && campoTorta) {
+    function toggleCampoTorta() {
+        campoTorta.style.display = checkTorta.checked ? "inline-block" : "none";
+        if (!checkTorta.checked) campoTorta.value = "";
+    }
+    checkTorta.addEventListener("change", toggleCampoTorta);
+    toggleCampoTorta();
+}
+
+// Shimer
+const checkShimer = document.querySelector('input[value="Shimer"]');
+const campoShimer = document.getElementById("campoShimer");
+
+if (checkShimer && campoShimer) {
+    function toggleCampoShimer() {
+        campoShimer.style.display = checkShimer.checked ? "inline-block" : "none";
+        if (!checkShimer.checked) campoShimer.value = "";
+    }
+    checkShimer.addEventListener("change", toggleCampoShimer);
+    toggleCampoShimer();
+}
+
+// Detalle especial
+const checkEspecial = document.querySelector('input[value="Detalle especial"]');
+const campoEspecial = document.getElementById("campoEspecial");
+
+if (checkEspecial && campoEspecial) {
+    function toggleCampoEspecial() {
+        campoEspecial.style.display = checkEspecial.checked ? "inline-block" : "none";
+        if (!checkEspecial.checked) campoEspecial.value = "";
+    }
+    checkEspecial.addEventListener("change", toggleCampoEspecial);
+    toggleCampoEspecial();
+}
+});
+</script>
+
+</body>
+</html>

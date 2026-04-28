@@ -1,0 +1,107 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Crear Cliente</title>
+    <link rel="stylesheet" href="{% static 'estilo.css' %}">
+    <link rel="stylesheet" href="{% static 'especial.css' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        input, select, button {
+            padding: 8px;
+            margin-top: 4px;
+            margin-bottom: 12px;
+            width: 100%;
+            max-width: 400px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+    
+    <h1>Crear Cliente</h1>
+
+    {% if messages %}
+        {% for message in messages %}
+            <p style="color: red;">{{ message }}</p>
+        {% endfor %}
+    {% endif %}
+
+    <form method="POST">
+        {% csrf_token %}
+
+        <label for="dni">DNI:</label>
+        <input type="text" name="dni" id="dni" value="{{ dni|default:'' }}">
+
+        <label for="nombre">Nombre:</label>
+        <input type="text" name="nombre" id="nombre" value="{{ nombre|default:'' }}">
+
+        <label for="fecha_evento_alt">Fecha del Evento:</label>
+        <input type="hidden" name="fecha_evento" id="fecha_evento" value="{{ fecha_evento|default:'' }}">
+        <input type="text" id="fecha_evento_alt" value=""> 
+
+        <label for="tipo_evento">Tipo de Evento:</label>
+        <select name="tipo_evento" id="tipo_evento" required>
+            <option value="">--Seleccioná un tipo--</option>
+            {% for evento in tipos_evento %}
+                <option value="{{ evento }}" 
+                    {% if evento == tipo_evento_seleccionado %}selected{% endif %}>
+                    {{ evento }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <label for="horario">Horario (Inicio):</label>
+        <input type="time" name="horario" id="horario" value="{{ horario|default:'' }}">
+
+        <!-- NUEVO CAMPO: HORARIO DE CIERRE -->
+        <label for="horario_cierre">Horario de Cierre:</label>
+        <input type="time" name="horario_cierre" id="horario_cierre" value="{{ horario_cierre|default:'' }}">
+
+        <label for="salon">Salón:</label>
+        <select name="salon" id="salon" required>
+            <option value="">--Seleccioná un salón--</option>
+            {% for s in salon %}
+                <option value="{{ s }}" {% if s == salon_seleccionado %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+        </select>
+
+        <button type="submit">Guardar y continuar</button>
+    </form>
+
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 20px;">
+        <a href="{% url 'inicio' %}">
+            <button type="button">Volver al inicio</button>
+        </a>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+    <script>
+        // Inicializar Flatpickr
+        var fp = flatpickr("#fecha_evento_alt", {
+            locale: "es",
+            altInput: true,
+            altFormat: "d/m/Y",
+            dateFormat: "Y-m-d",
+            allowInput: true,
+            altInputClass: "flatpickr-input",
+            onChange: function(selectedDates, dateStr, instance) {
+                document.getElementById("fecha_evento").value = dateStr;
+            }
+        });
+
+        // Restaurar fecha al recargar por error
+        var fechaOculta = document.getElementById("fecha_evento").value;
+        if (fechaOculta) {
+             fp.setDate(fechaOculta, true);
+        }
+    </script>
+
+</body>
+</html>

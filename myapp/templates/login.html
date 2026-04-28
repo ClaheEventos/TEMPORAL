@@ -1,0 +1,38 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <title>Login</title>
+    <link rel="stylesheet" href="{% static 'estilo.css' %}">
+    <link rel="stylesheet" href="{% static 'especial.css' %}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <h1>Iniciar Sesión</h1>
+
+    <form method="POST" action="">
+        {% csrf_token %}
+        <div>
+            <label for="username">Usuario:</label>
+            <input type="text" name="username" id="username" required>
+        </div>
+
+        <div>
+            <label for="password">Contraseña:</label>
+            <input type="password" name="password" id="password" required>
+        </div>
+
+        <button type="submit">Ingresar</button>
+    </form>
+
+    {% if messages %}
+        <div style="margin-top: 20px; color: red;">
+            {% for message in messages %}
+                <p>{{ message }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+</body>
+</html>

@@ -1,0 +1,51 @@
+# ----------------------
+# Python
+# ----------------------
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+*.swp
+*.swo
+*.pkl
+
+# ----------------------
+# Environment / virtualenv
+# ----------------------
+env/
+venv/
+ENV/
+.venv/
+.env
+
+# ----------------------
+# Django
+# ----------------------
+*.log
+db.sqlite3          # si alguna vez tuviste SQLite local
+*.sqlite3
+media/
+staticfiles/
+# archivos migraciones generados (opcional, puedes subirlos si querés)
+# */migrations/*.py
+# */migrations/*.pyc
+
+# ----------------------
+# MongoEngine / MongoDB
+# ----------------------
+*.bson
+*.dump
+*.json
+
+# ----------------------
+# IDE / Sistema Operativo
+# ----------------------
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# ----------------------
+# PythonAnywhere (opcional)
+# ----------------------
+*.env

@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Envíos{% endblock %}
+
+{% block breadcrumb %}
+  <span class="topbar-sep">/</span>
+  <span class="topbar-page">Envíos a salones</span>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    
+    <h2>📦 Lista de Envíos</h2>
+
+    <!-- 🔥 ACCIONES SALÓN -->
+    {% if user.perfil.rol == 'salon' %}
+        <a href="{% url 'ver_stock' %}" class="btn btn-warning mb-2">
+            🍽️ Consumir productos
+        </a>
+
+        <a href="{% url 'reporte_consumo' %}" class="btn btn-info mb-2">
+            📊 Ver reporte
+        </a>
+    {% endif %}
+
+    <div class="card-header">
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <span class="card-title">Envíos</span>
+
+            <!-- 🔍 FILTROS - Todos los roles ven los filtros -->
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                {% for estado, label in estados %}
+                    <a
+                        href="?{% if estado %}estado={{ estado }}{% endif %}"
+                        style="
+                            font-size: 11px;
+                            padding: 3px 9px;
+                            border-radius: 20px;
+                            text-decoration: none;
+                            border: 0.5px solid {% if estado_activo == estado or estado_activo == 'todos' and not estado %}#1a1a18{% else %}rgba(0,0,0,.15){% endif %};
+                            background: {% if estado_activo == estado or estado_activo == 'todos' and not estado %}#1a1a18{% else %}#fff{% endif %};
+                            color: {% if estado_activo == estado or estado_activo == 'todos' and not estado %}#fff{% else %}#6b6a65{% endif %};
+                        "
+                    >{{ label }}</a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- ➕ CREAR ENVÍO -->
+        {% if user.perfil.rol == 'departamento' or user.perfil.rol == 'admin' %}
+            <a href="{% url 'crear_envio' %}" class="btn btn-primary btn-sm">
+                + Nuevo envío
+            </a>
+        {% endif %}
+    </div>
+
+    <!-- 📦 LISTADO -->
+    {% if envios %}
+        {% for envio in envios %}
+        <div style="
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 18px;
+            border-bottom: 0.5px solid rgba(0,0,0,.07);
+        ">
+
+            <!-- ID -->
+            <div style="font-size: 11px; color: #6b6a65; min-width: 28px;">
+                #{{ envio.id }}
+            </div>
+
+            <!-- INFO -->
+            <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 13px; font-weight: 500;">
+                    {{ envio.origen }} → {{ envio.destino }}
+                </div>
+
+                <div style="font-size: 11px; color: #6b6a65;">
+                    Creado: {{ envio.fecha_creacion|date:"d/m/Y H:i" }}
+                    
+                    {% if envio.fecha_evento %}
+                        · 🗓️ Evento: {{ envio.fecha_evento|date:"d/m/Y H:i" }}
+                    {% endif %}
+                    
+                    {% if envio.descripcion %}
+                        · {{ envio.descripcion|truncatechars:50 }}
+                    {% endif %}
+                </div>
+
+                <!-- Productos -->
+                <div style="font-size: 11px; color: #6b6a65;">
+                    {% for d in envio.detalles.all %}
+                        {% if d.check_incluido %}
+                            ✓
+                        {% else %}
+                            ✗
+                        {% endif %}
+                        {{ d.producto.nombre }}:
+                        {% if d.cantidad %}
+                            {{ d.cantidad }}
+                        {% else %}
+                            {{ d.producto.cantidad_gramos|default:"-" }}
+                        {% endif %}
+                        {% if not forloop.last %}, {% endif %}
+                    {% endfor %}
+                </div>
+
+                <!-- OBSERVACIÓN -->
+                {% if envio.observacion %}
+                    <div style="font-size: 11px; color: #854f0b;">
+                        Obs: {{ envio.observacion|truncatechars:80 }}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- ESTADO -->
+            <span class="badge badge-{{ envio.estado }}">
+                {{ envio.get_estado_display }}
+            </span>
+
+            <!-- ⚙️ ACCIONES -->
+            <div style="display: flex; gap: 6px; flex-shrink: 0;">
+                <!-- VER - Todos los roles pueden ver -->
+                <a href="{% url 'detalle_envio' envio.id %}" class="btn btn-secondary btn-sm">
+                    Ver
+                </a>
+
+                <!-- DEPARTAMENTO: Enviar si está pendiente -->
+                {% if user.perfil.rol == 'departamento' and envio.estado == 'pendiente' %}
+                    <form method="post" action="{% url 'enviar_envio' envio.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            Enviar →
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div style="padding: 40px; text-align: center; color: #6b6a65;">
+            No hay envíos para mostrar.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

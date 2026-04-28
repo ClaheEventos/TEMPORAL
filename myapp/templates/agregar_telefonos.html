@@ -1,0 +1,51 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teléfonos</title>
+    <link rel="stylesheet" href="{% static 'estilo.css' %}">
+        <link rel="stylesheet" href="{% static 'navbar.css' %}">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+ <nav class="navbar">
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+    <div class="nav-links" id="navLinks">
+        <a href="{% url 'agregar_telefonos' cliente_id=cliente.id %}">Teléfonos</a>
+        <a href="{% url 'elegir_plan' cliente_id=cliente.id %}">Plan</a>
+        <a href="{% url 'elegir_personal' cliente_id=cliente.id %}">Personal</a>
+        <a href="{% url 'elegir_boutique' cliente_id=cliente.id %}">Boutique</a> <!-- NUEVO LINK -->
+        <a href="{% url 'elegir_bebidas' cliente_id=cliente.id %}">Bebidas</a>
+        <a href="{% url 'elegir_islas' cliente_id=cliente.id %}">Islas</a>
+        <a href="{% url 'elegir_islas_premium' cliente_id=cliente.id %}">Islas Premium</a>
+        <a href="{% url 'elegir_barra_tragos' cliente_id=cliente.id %}">Barra de Tragos</a>
+        <a href="{% url 'elegir_platos' cliente_id=cliente.id %}">Platos</a>
+        <a href="{% url 'elegir_postres' cliente_id=cliente.id %}">Postres</a>
+        <a href="{% url 'elegir_mesa_dulce_premium' cliente_id=cliente.id %}">Mesa Dulce Premium</a>
+        <a href="{% url 'elegir_extras' cliente_id=cliente.id %}">Extras</a>
+        <a href="{% url 'elegir_shows' cliente_id=cliente.id %}">Shows</a>
+        <a href="{% url 'elegir_recepcion' cliente_id=cliente.id %}">Recepción</a>
+        <a href="{% url 'elegir_fin_de_fiesta' cliente_id=cliente.id %}">Fin de Fiesta</a>
+    </div>
+</nav>
+  <h1>Agregar Teléfonos</h1>
+
+<form method="POST">
+    {% csrf_token %}
+    <label for="numero1">Número 1:</label>
+    <input type="text" name="numero1" id="numero1" value="{{ numero1 }}" required>
+    <br><br>
+    <label for="numero2">Número 2:</label>
+    <input type="text" name="numero2" id="numero2" value="{{ numero2 }}" required>
+    <br><br>
+    <button type="submit">Guardar Teléfonos</button>
+</form>
+<script>
+    function toggleMenu() {
+        document.getElementById('navLinks').classList.toggle('show');
+    }
+</script>
+</body>
+</html>
