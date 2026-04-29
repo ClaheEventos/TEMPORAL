@@ -23,8 +23,7 @@ class Salon(models.Model):
 
 # ── 3. TIPOS DE PRODUCTO (POR DEPARTAMENTO) ─────────────────────────────
 class TipoProducto(models.Model):
-    """Los tipos de producto pertenecen a un departamento específico"""
-    nombre = models.CharField(max_length=50)  # ej: "pesable", "unidad", "piezas", "rolls", "recepción"
+    nombre = models.CharField(max_length=50)
     departamento = models.ForeignKey(Departamento, on_delete=models.CASCADE, related_name='tipos')
     
     def __str__(self):
@@ -36,33 +35,22 @@ class TipoProducto(models.Model):
         verbose_name_plural = "Tipos de Productos"
 
 
-# ── 4. PRODUCTOS (CORREGIDO) ─────────────────────────────────────────────
+# ── 4. PRODUCTOS ─────────────────────────────────────────────
 class Producto(models.Model):
-    # Datos principales
     nombre = models.CharField(max_length=200, verbose_name="Nombre del producto")
     departamento = models.ForeignKey(Departamento, on_delete=models.CASCADE, related_name='productos', verbose_name="Departamento/Isla")
-    
-    # Tipo de producto (ligado al departamento)
     tipo = models.ForeignKey(TipoProducto, on_delete=models.CASCADE, related_name='productos', verbose_name="Tipo")
-    
-    # Cantidad/gramos (texto libre para ej: "200g", "10 unidades", "1 bandeja")
     cantidad_gramos = models.CharField(max_length=100, blank=True, null=True, verbose_name="Cantidad o gramos", 
                                        help_text="Ej: 200g, 10 unidades, 1 bandeja, 8 piezas")
-    
-    # Check 1 (del listado)
     check_1 = models.BooleanField(default=False, verbose_name="Check 1")
-    
-    # Si se puede devolver o no
     es_devolvible = models.BooleanField(default=True)
-    
-    # Detalle adicional
     detalle = models.TextField(blank=True, null=True, verbose_name="Detalle adicional")
     se_puede_reusar = models.BooleanField(
         default=False,
         verbose_name="Se puede reusar",
         help_text="True para bebidas, False para comida")
+    
     def clean(self):
-        # Validar que el tipo pertenezca al mismo departamento que el producto
         if self.tipo and self.tipo.departamento != self.departamento:
             raise ValidationError(f"El tipo '{self.tipo.nombre}' no pertenece al departamento '{self.departamento.nombre}'")
     
@@ -91,22 +79,18 @@ class Envio(models.Model):
 
     origen = models.ForeignKey(Departamento, on_delete=models.CASCADE, related_name='envios_salientes')
     destino = models.ForeignKey(Salon, on_delete=models.CASCADE, related_name='envios_recibidos')
-
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pendiente')
-    
-    # Fecha del evento
     fecha_evento = models.DateTimeField(null=True, blank=True, verbose_name="Fecha del Evento", 
                                         help_text="Fecha y hora del evento para el cual se solicita este envío")
-
     descripcion = models.TextField(blank=True)
-
     creado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='envios_creados')
-
-    # Fechas del sistema
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_envio = models.DateTimeField(null=True, blank=True)
     fecha_respuesta = models.DateTimeField(null=True, blank=True)
     fecha_entregado = models.DateTimeField(null=True, blank=True)
+    
+    # Campos opcionales para observación del salón
+    observacion = models.TextField(blank=True, null=True, verbose_name="Observación del salón")
 
     def enviar(self):
         self.estado = 'enviado'
@@ -133,20 +117,14 @@ class Envio(models.Model):
         return f"Envío {self.id} → {self.destino.nombre} [{self.estado}]{evento}"
 
 
-# ── 6. DETALLE DEL ENVÍO (CORREGIDO) ────────────────────────────────
+# ── 6. DETALLE DEL ENVÍO ────────────────────────────────
 class DetalleEnvio(models.Model):
     envio = models.ForeignKey(Envio, on_delete=models.CASCADE, related_name='detalles')
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
-    
-    # Cantidad específica para ESTE envío (puede diferir del producto base)
     cantidad = models.CharField(max_length=100, blank=True, null=True, 
                                 verbose_name="Cantidad para este envío",
                                 help_text="Ej: 200g, 5 unidades, 2 bandejas")
-    
-    # Check incluido en este envío
     check_incluido = models.BooleanField(default=True, verbose_name="Incluido en envío")
-    
-    # Observaciones específicas de esta línea
     observacion = models.CharField(max_length=200, blank=True, null=True)
 
     def __str__(self):
@@ -201,7 +179,7 @@ class PerfilUsuario(models.Model):
         return f"{self.usuario.username} ({self.rol})"
 
 
-# ── 9. CONSUMO POR SALÓN ────────────────────────────────────────────
+# ── 9. CONSUMO POR SALÓN (MODIFICADO CON FECHA DEL EVENTO) ──────────────────
 class ConsumoSalon(models.Model):
     salon = models.ForeignKey(Salon, on_delete=models.CASCADE, related_name='consumos')
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
@@ -211,9 +189,27 @@ class ConsumoSalon(models.Model):
     # Referencia al envío que originó este consumo
     envio = models.ForeignKey(Envio, on_delete=models.SET_NULL, null=True, blank=True, related_name='consumos')
     
-    fecha = models.DateTimeField(auto_now_add=True)
+    # Fecha del evento (se copia automáticamente del envío)
+    fecha_evento = models.DateTimeField(null=True, blank=True, verbose_name="Fecha del evento",
+                                        help_text="Fecha del evento asociado a este consumo")
+    
+    # Fecha del sistema (cuando se registró el consumo)
+    fecha_registro = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de registro")
+    
     comentario = models.TextField(blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        # Si tiene un envío asociado, copiar la fecha del evento automáticamente
+        if self.envio and self.envio.fecha_evento:
+            self.fecha_evento = self.envio.fecha_evento
+        super().save(*args, **kwargs)
 
     def __str__(self):
         producto_str = self.producto.cantidad_gramos if self.producto.cantidad_gramos else self.producto.nombre
-        return f"{self.salon.nombre} - {producto_str} ({self.cantidad})"
+        fecha = self.fecha_evento.strftime('%d/%m/%Y') if self.fecha_evento else "Sin fecha"
+        return f"{self.salon.nombre} - {producto_str} ({self.cantidad}) - {fecha}"
+    
+    class Meta:
+        verbose_name = "Consumo por Salón"
+        verbose_name_plural = "Consumos por Salón"
+        ordering = ['-fecha_evento', '-fecha_registro']

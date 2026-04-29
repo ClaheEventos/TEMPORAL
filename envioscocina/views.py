@@ -1,4 +1,5 @@
 import json
+import re
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
@@ -7,6 +8,70 @@ from django.http import JsonResponse
 from django.utils import timezone
 
 from .models import Envio, DetalleEnvio, Producto, Salon, StockSalon, ConsumoSalon, Departamento, TipoProducto
+
+
+# ─────────────────────────────────────────────
+# FUNCIONES AUXILIARES
+# ─────────────────────────────────────────────
+
+def extraer_numero(texto):
+    """Extrae un número de un texto como '10 unidades' -> 10"""
+    if not texto:
+        return 0
+    texto = str(texto).strip()
+    match = re.search(r'(\d+(?:[.,]\d+)?)', texto)
+    if match:
+        return float(match.group(1).replace(',', '.'))
+    return 0
+
+def extraer_unidad(texto):
+    """Extrae la unidad de un texto como '10 unidades' -> 'unidades'"""
+    if not texto:
+        return 'unidades'
+    texto = str(texto).strip().lower()
+    match = re.search(r'\d+(?:[.,]\d+)?\s*([a-záéíóúñ]+)', texto)
+    if match:
+        return match.group(1)
+    return 'unidades'
+
+def parse_cantidad(cantidad_str):
+    """Parsea una cantidad como '200g', '5 unidades', '3kg' y devuelve (valor, unidad)"""
+    cantidad_str = str(cantidad_str).strip().lower()
+    match = re.match(r'^(\d+(?:\.\d+)?)\s*([a-záéíóúñ]+)?', cantidad_str)
+    if match:
+        valor = float(match.group(1))
+        unidad = match.group(2) if match.group(2) else 'unidades'
+        return valor, unidad
+    return 0, ''
+
+def sumar_cantidades(cantidad1, cantidad2):
+    """Suma dos cantidades en texto (ej: '200g' + '300g' = '500g')"""
+    val1, uni1 = parse_cantidad(cantidad1)
+    val2, uni2 = parse_cantidad(cantidad2)
+    
+    if uni1 != uni2:
+        return f"{cantidad1} + {cantidad2}"
+    
+    resultado = val1 + val2
+    if resultado.is_integer():
+        resultado = int(resultado)
+    return f"{resultado}{uni1}"
+
+def restar_cantidades(cantidad_total, cantidad_restar):
+    """Resta dos cantidades en texto (ej: '500g' - '200g' = '300g')"""
+    val_total, uni_total = parse_cantidad(cantidad_total)
+    val_restar, uni_restar = parse_cantidad(cantidad_restar)
+    
+    if uni_total != uni_restar and uni_restar != '':
+        return cantidad_total
+    
+    resultado = val_total - val_restar
+    if resultado <= 0:
+        return "0"
+    
+    if resultado.is_integer():
+        resultado = int(resultado)
+    return f"{resultado}{uni_total}"
 
 
 # ─────────────────────────────────────────────
@@ -104,8 +169,7 @@ def central(request):
 # ─────────────────────────────────────────────
 # API: stock de un salón
 # ─────────────────────────────────────────────
-# Primero, actualizá tu API para que devuelva el tipo (solo esto agregás):
-# Primero, actualizá tu API para que devuelva el tipo (solo esto agregás):
+
 @login_required(login_url='/envioscocina/login/')
 def api_stock_salon(request, salon_id):
     if request.user.perfil.rol not in ('departamento', 'admin'):
@@ -123,14 +187,17 @@ def api_stock_salon(request, salon_id):
         stock = StockSalon.objects.filter(salon=salon, producto=p).first()
         data.append({
             'id': p.id,
-            'nombre': str(p),
+            'nombre': p.nombre,
             'es_devolvible': p.es_devolvible,
             'se_puede_reusar': p.se_puede_reusar,
             'stock_salon': stock.cantidad if stock else '0',
-            'tipo_nombre': p.tipo.nombre if p.tipo else 'OTROS',  # 🔥 AGREGÁ ESTA LÍNEA
+            'tipo_nombre': p.tipo.nombre if p.tipo else 'OTROS',
+            'cantidad_gramos': p.cantidad_gramos or '',
         })
     
     return JsonResponse({'salon': salon.nombre, 'productos': data})
+
+
 # ─────────────────────────────────────────────
 # LISTA DE ENVÍOS
 # ─────────────────────────────────────────────
@@ -145,15 +212,12 @@ def lista_envios(request):
     elif rol == 'departamento':
         envios = Envio.objects.filter(origen=user.perfil.departamento)
     elif rol == 'salon':
-        # Salón ve todos los envíos de su destino
         envios = Envio.objects.filter(destino=user.perfil.salon)
     else:
         envios = Envio.objects.none()
 
-    # 🔥 NUEVO: Para salón, si no hay filtro, mostrar SOLO 'enviado' por defecto
     estado = request.GET.get('estado')
     if rol == 'salon' and not estado:
-        # Por defecto filtrar solo enviados
         envios = envios.filter(estado='enviado')
         estado_activo = 'enviado'
     elif estado:
@@ -178,8 +242,18 @@ def lista_envios(request):
         'estado_activo': estado_activo,
         'estados': estados,
     })
-# CREAR ENVÍO (ACTUALIZADO)
+
+
 # ─────────────────────────────────────────────
+# CREAR ENVÍO (CORREGIDO Y FUNCIONAL)
+# ─────────────────────────────────────────────
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.shortcuts import render, redirect, get_object_or_404
+from django.utils.dateparse import parse_datetime
+
+
+
 @login_required(login_url='/envioscocina/login/')
 def crear_envio(request):
     if request.user.perfil.rol != 'departamento':
@@ -187,82 +261,141 @@ def crear_envio(request):
         return redirect('lista_envios')
 
     salones = Salon.objects.all()
-    productos = Producto.objects.filter(departamento=request.user.perfil.departamento)
 
     if request.method == 'POST':
         destino_id = request.POST.get('destino')
-        descripcion = request.POST.get('descripcion', '')
+        descripcion = request.POST.get('descripcion', '').strip()
         fecha_evento = request.POST.get('fecha_evento')
+        tipo_evento = request.POST.get('tipo_evento')
+        plan_evento = request.POST.get('plan_evento')
+        cantidad_invitados = request.POST.get('cantidad_invitados')
 
-        envio = Envio.objects.create(
-            origen=request.user.perfil.departamento,
-            destino_id=destino_id,
-            descripcion=descripcion,
-            creado_por=request.user,
-        )
-        
-        if fecha_evento:
-            envio.fecha_evento = fecha_evento
-            envio.save()
+        if not destino_id:
+            messages.error(request, "Debe seleccionar un salón destino")
+            return redirect('crear_envio')
 
         salon = get_object_or_404(Salon, id=destino_id)
-        productos_del_departamento = Producto.objects.filter(departamento=request.user.perfil.departamento)
 
-        for producto in productos_del_departamento:
-            # Obtener cantidad a USAR DEL STOCK
-            usar_stock_str = request.POST.get(f'usar_stock_{producto.id}', '0')
-            # Obtener cantidad a ENVIAR NUEVOS
-            enviar_nuevos_str = request.POST.get(f'enviar_{producto.id}', '0')
-            
-            usar_stock_num = int(usar_stock_str) if usar_stock_str.isdigit() else 0
-            enviar_nuevos_num = int(enviar_nuevos_str) if enviar_nuevos_str.isdigit() else 0
-            
-            # Si no hay nada, saltar
-            if usar_stock_num == 0 and enviar_nuevos_num == 0:
+        # ==========================================================
+        # CREAR ENVÍO DIRECTAMENTE COMO ENVIADO
+        # ==========================================================
+        envio = Envio.objects.create(
+            origen=request.user.perfil.departamento,
+            destino=salon,
+            descripcion=descripcion,
+            creado_por=request.user,
+            estado='enviado',
+        )
+
+        if fecha_evento:
+            envio.fecha_evento = parse_datetime(fecha_evento)
+
+        envio.tipo_evento = tipo_evento or ''
+        envio.plan_evento = plan_evento or ''
+
+        if cantidad_invitados:
+            try:
+                envio.cantidad_invitados = int(cantidad_invitados)
+            except ValueError:
+                envio.cantidad_invitados = None
+
+        envio.save()
+
+        productos = Producto.objects.filter(
+            departamento=request.user.perfil.departamento
+        )
+
+        productos_agregados = False
+
+        for producto in productos:
+            usar_stock_str = request.POST.get(
+                f'usar_stock_{producto.id}',
+                '0'
+            )
+
+            enviar_nuevos_str = request.POST.get(
+                f'enviar_{producto.id}',
+                ''
+            ).strip()
+
+            usar_stock_num = (
+                int(usar_stock_str)
+                if usar_stock_str.isdigit()
+                else 0
+            )
+
+            if usar_stock_num == 0 and not enviar_nuevos_str:
                 continue
-            
-            # 🔥 1. PROCESAR USO DE STOCK EXISTENTE (DESCONTAR)
+
+            productos_agregados = True
+
+            # ======================================================
+            # DESCONTAR STOCK DEL SALÓN
+            # ======================================================
             if usar_stock_num > 0:
-                stock, created = StockSalon.objects.get_or_create(
+                stock, _ = StockSalon.objects.get_or_create(
                     salon=salon,
                     producto=producto,
                     defaults={'cantidad': '0'}
                 )
-                
-                # Extraer número actual del stock
-                stock_actual_num = extraer_numero(stock.cantidad) if stock.cantidad else 0
-                stock_unidad = extraer_unidad(stock.cantidad) if stock.cantidad else 'unidades'
-                
+
+                stock_actual_num = extraer_numero(
+                    stock.cantidad or '0'
+                )
+
+                stock_unidad = extraer_unidad(
+                    stock.cantidad or '0 unidades'
+                )
+
                 if stock_actual_num >= usar_stock_num:
-                    nuevo_stock_num = stock_actual_num - usar_stock_num
-                    stock.cantidad = f"{nuevo_stock_num} {stock_unidad}".strip()
+                    nuevo_stock = stock_actual_num - usar_stock_num
+                    stock.cantidad = (
+                        f"{nuevo_stock} {stock_unidad}"
+                    ).strip()
                     stock.save()
-                    messages.info(request, f"✅ Reservado {usar_stock_num} de {producto.nombre} del stock existente. Stock restante: {stock.cantidad}")
                 else:
-                    messages.warning(request, f"⚠️ No hay suficiente stock de {producto.nombre}. Tenés {stock.cantidad}, querés usar {usar_stock_num}.")
-            
-            # 🔥 2. PROCESAR ENVÍO DE NUEVOS PRODUCTOS
-            if enviar_nuevos_num > 0:
+                    messages.warning(
+                        request,
+                        f"⚠️ No hay suficiente stock de "
+                        f"{producto.nombre}. "
+                        f"Tenés {stock.cantidad} "
+                        f"y querés usar {usar_stock_num}."
+                    )
+
+            # ======================================================
+            # CREAR DETALLE DEL ENVÍO
+            # ======================================================
+            if enviar_nuevos_str and enviar_nuevos_str != '0':
                 DetalleEnvio.objects.create(
                     envio=envio,
                     producto=producto,
-                    cantidad=str(enviar_nuevos_num),
+                    cantidad=enviar_nuevos_str,
                     check_incluido=True,
                 )
-                messages.info(request, f"📦 Enviando {enviar_nuevos_num} nuevos de {producto.nombre}")
 
-        if envio.detalles.count() == 0 and usar_stock_num == 0:
-            messages.warning(request, "No se agregaron productos al envío.")
+        if not productos_agregados:
+            envio.delete()
+            messages.warning(
+                request,
+                "No se agregaron productos al envío."
+            )
         else:
-            messages.success(request, "Envío creado correctamente")
-            
+            messages.success(
+                request,
+                f"✅ Envío #{envio.id} creado y enviado correctamente - "
+                f"{envio.tipo_evento} - {envio.plan_evento}"
+            )
+
         return redirect('lista_envios')
 
-    return render(request, 'envios/crear.html', {
-        'salones': salones,
-        'productos': productos,
-    })
-
+    return render(
+        request,
+        'envios/crear.html',
+        {
+            'salones': salones,
+        }
+ 
+    )
 # ─────────────────────────────────────────────
 # DETALLE DE UN ENVÍO
 # ─────────────────────────────────────────────
@@ -290,14 +423,13 @@ def enviar_envio(request, envio_id):
         return redirect('lista_envios')
 
     envio.enviar()
-    messages.success(request, "Envío marcado como enviado")
+    messages.success(request, f"✅ Envío #{envio.id} marcado como enviado")
     return redirect('lista_envios')
 
 
 # ─────────────────────────────────────────────
-# ACEPTAR (salón) - ACTUALIZADO
+# ACEPTAR (salón)
 # ─────────────────────────────────────────────
-
 
 @login_required(login_url='/envioscocina/login/')
 def aceptar_envio(request, envio_id):
@@ -322,7 +454,6 @@ def aceptar_envio(request, envio_id):
             defaults={'cantidad': '0'}
         )
         
-        # 🔥 SUMAR la cantidad del envío al stock existente
         if created or stock.cantidad == '0':
             stock.cantidad = detalle.cantidad
         else:
@@ -330,8 +461,16 @@ def aceptar_envio(request, envio_id):
         stock.save()
 
     envio.aceptar()
-    messages.success(request, "Envío aceptado y stock actualizado")
+    
+    # Guardar observación si viene del formulario
+    observacion = request.POST.get('observacion', '')
+    if observacion:
+        envio.observacion = observacion
+        envio.save()
+    
+    messages.success(request, f"✅ Envío #{envio.id} aceptado y stock actualizado")
     return redirect('lista_envios')
+
 
 # ─────────────────────────────────────────────
 # RECHAZAR (salón)
@@ -349,14 +488,21 @@ def rechazar_envio(request, envio_id):
         messages.error(request, "Solo se pueden rechazar envíos en estado 'enviado'")
         return redirect('lista_envios')
 
+    # Guardar observación del rechazo
+    observacion = request.POST.get('observacion', '')
+    if observacion:
+        envio.observacion = observacion
+        envio.save()
+
     envio.rechazar()
-    messages.warning(request, "Envío rechazado")
+    messages.warning(request, f"❌ Envío #{envio.id} rechazado")
     return redirect('lista_envios')
 
 
 # ─────────────────────────────────────────────
-# CONSUMIR PRODUCTO - ACTUALIZADO
+# CONSUMIR PRODUCTO
 # ─────────────────────────────────────────────
+
 @login_required(login_url='/envioscocina/login/')
 def consumir_producto(request):
     if request.user.perfil.rol != 'salon':
@@ -381,7 +527,6 @@ def consumir_producto(request):
             defaults={'cantidad': '0'}
         )
 
-        # 🔥 LÓGICA: reusable vs no reusable
         if producto.se_puede_reusar:
             stock.cantidad = cantidad_sobrante
             messages.success(request, f"✅ {producto.nombre}: sobró {cantidad_sobrante}. Queda en stock.")
@@ -402,34 +547,27 @@ def consumir_producto(request):
     
     return redirect('ver_stock')
 
+
 # ─────────────────────────────────────────────
-# VER STOCK - ACTUALIZADO
+# VER STOCK
 # ─────────────────────────────────────────────
 
 @login_required(login_url='/envioscocina/login/')
 def ver_stock(request):
     if request.user.perfil.rol == 'salon':
-        # Mostrar SOLO productos marcados como reutilizables
         stock = StockSalon.objects.filter(
             salon=request.user.perfil.salon,
             producto__se_puede_reusar=True
         ).select_related('producto')
-
         template = 'consumir.html'
-
     elif request.user.perfil.rol in ('admin', 'departamento'):
-        stock = StockSalon.objects.all().select_related(
-            'salon',
-            'producto'
-        )
+        stock = StockSalon.objects.all().select_related('salon', 'producto')
         template = 'stock/lista.html'
-
     else:
         return redirect('central')
 
-    return render(request, template, {
-        'stock': stock,
-    })
+    return render(request, template, {'stock': stock})
+
 
 # ─────────────────────────────────────────────
 # REPORTE DE CONSUMO
@@ -437,80 +575,18 @@ def ver_stock(request):
 
 @login_required(login_url='/envioscocina/login/')
 def reporte_consumo(request):
-    consumos = ConsumoSalon.objects.all().order_by('-fecha')
+    consumos = ConsumoSalon.objects.all().order_by('-fecha_registro')
     
-    # Filtros por fecha
     fecha_desde = request.GET.get('fecha_desde')
     fecha_hasta = request.GET.get('fecha_hasta')
     
     if fecha_desde:
-        consumos = consumos.filter(fecha__date__gte=fecha_desde)
+        consumos = consumos.filter(fecha_evento__date__gte=fecha_desde)
     if fecha_hasta:
-        consumos = consumos.filter(fecha__date__lte=fecha_hasta)
+        consumos = consumos.filter(fecha_evento__date__lte=fecha_hasta)
     
     return render(request, 'envios/reporte.html', {
         'consumos': consumos,
         'fecha_desde': fecha_desde,
         'fecha_hasta': fecha_hasta,
     })
-
-
-
-def parse_cantidad(cantidad_str):
-    """Parsea una cantidad como '200g', '5 unidades', '3kg' y devuelve (valor, unidad)"""
-    import re
-    cantidad_str = str(cantidad_str).strip().lower()
-    match = re.match(r'^(\d+(?:\.\d+)?)\s*([a-záéíóúñ]+)?', cantidad_str)
-    if match:
-        valor = float(match.group(1))
-        unidad = match.group(2) if match.group(2) else 'unidades'
-        return valor, unidad
-    return 0, ''
-
-
-def sumar_cantidades(cantidad1, cantidad2):
-    """Suma dos cantidades en texto (ej: '200g' + '300g' = '500g')"""
-    val1, uni1 = parse_cantidad(cantidad1)
-    val2, uni2 = parse_cantidad(cantidad2)
-    
-    if uni1 != uni2:
-        # Si las unidades son diferentes, concatenar
-        return f"{cantidad1} + {cantidad2}"
-    
-    resultado = val1 + val2
-    if resultado.is_integer():
-        resultado = int(resultado)
-    return f"{resultado}{uni1}"
-
-
-def restar_cantidades(cantidad_total, cantidad_restar):
-    """Resta dos cantidades en texto (ej: '500g' - '200g' = '300g')"""
-    val_total, uni_total = parse_cantidad(cantidad_total)
-    val_restar, uni_restar = parse_cantidad(cantidad_restar)
-    
-    if uni_total != uni_restar and uni_restar != '':
-        return cantidad_total  # No se puede restar, devolver el total original
-    
-    resultado = val_total - val_restar
-    if resultado <= 0:
-        return "0"
-    
-    if resultado.is_integer():
-        resultado = int(resultado)
-    return f"{resultado}{uni_total}"
-
-def extraer_numero(texto):
-    import re
-    texto = str(texto).strip()
-    match = re.search(r'(\d+(?:[.,]\d+)?)', texto)
-    if match:
-        return float(match.group(1).replace(',', '.'))
-    return 0
-
-def extraer_unidad(texto):
-    import re
-    texto = str(texto).strip().lower()
-    match = re.search(r'\d+(?:[.,]\d+)?\s*([a-záéíóúñ]+)', texto)
-    if match:
-        return match.group(1)
-    return 'unidades'

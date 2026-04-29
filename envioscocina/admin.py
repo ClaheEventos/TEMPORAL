@@ -48,4 +48,7 @@ class PerfilUsuarioAdmin(admin.ModelAdmin):
 
 @admin.register(ConsumoSalon)
 class ConsumoSalonAdmin(admin.ModelAdmin):
-    list_display = ('salon', 'producto', 'cantidad', 'fecha')
+    # ✅ CORREGIDO: usa fecha_registro en lugar de fecha
+    list_display = ('salon', 'producto', 'cantidad', 'fecha_registro', 'fecha_evento')
+    list_filter = ('salon', 'fecha_evento')
+    search_fields = ('salon__nombre', 'producto__nombre')

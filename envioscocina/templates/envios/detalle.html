@@ -10,231 +10,507 @@
 
 {% block content %}
 <style>
-  /* ESTILO HOJA DE RUTA PDF - SOLO VISUAL */
-  .ruta-card {
+  /* ESTILOS MODERNOS Y RESPONSIVE */
+  .detalle-card {
     background: white;
-    border: 1px solid #000;
-    font-family: 'Courier New', monospace;
-    max-width: 1000px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    overflow: hidden;
+    max-width: 1200px;
     margin: 0 auto;
   }
-  .ruta-header {
-    background: #000;
+  
+  .detalle-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    text-align: center;
-    padding: 10px;
+    padding: 20px 25px;
+  }
+  
+  .detalle-header h2 {
+    margin: 0 0 5px 0;
+    font-size: 24px;
+  }
+  
+  .detalle-header p {
+    margin: 0;
+    opacity: 0.9;
     font-size: 14px;
-    font-weight: bold;
   }
-  .ruta-info {
-    background: #f0f0f0;
-    padding: 10px 15px;
+  
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    padding: 25px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+  }
+  
+  .info-item {
     display: flex;
-    flex-wrap: wrap;
-    gap: 25px;
-    border-bottom: 1px solid #000;
+    flex-direction: column;
+  }
+  
+  .info-label {
     font-size: 11px;
-  }
-  .ruta-info strong {
-    font-weight: bold;
-  }
-  .ruta-seccion {
-    border-bottom: 1px solid #000;
-  }
-  .ruta-seccion-titulo {
-    background: #ddd;
-    padding: 6px 15px;
-    font-weight: bold;
-    font-size: 12px;
     text-transform: uppercase;
+    font-weight: 600;
+    color: #6c757d;
+    letter-spacing: 0.5px;
+    margin-bottom: 5px;
   }
-  .ruta-tabla {
+  
+  .info-value {
+    font-size: 15px;
+    font-weight: 500;
+    color: #212529;
+  }
+  
+  .badge-estado {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+  }
+  
+  .badge-pendiente { background: #fff3cd; color: #856404; }
+  .badge-enviado { background: #cce5ff; color: #004085; }
+  .badge-aceptado { background: #d4edda; color: #155724; }
+  .badge-rechazado { background: #f8d7da; color: #721c24; }
+  .badge-entregado { background: #d1ecf1; color: #0c5460; }
+  
+  .seccion {
+    padding: 20px 25px;
+    border-bottom: 1px solid #e9ecef;
+  }
+  
+  .seccion-titulo {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: #495057;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .tabla-moderna {
     width: 100%;
     border-collapse: collapse;
-    font-size: 11px;
   }
-  .ruta-tabla th {
-    background: #ccc;
-    padding: 8px 12px;
+  
+  .tabla-moderna th {
     text-align: left;
-    border-right: 1px solid #999;
-  }
-  .ruta-tabla td {
-    padding: 8px 12px;
-    border-bottom: 0.5px solid #eee;
-  }
-  .badge-pdf {
-    display: inline-block;
-    padding: 2px 10px;
-    font-size: 10px;
-    border: 1px solid;
-  }
-  .badge-pendiente { background: #faeeda; color: #854f0b; border-color: #854f0b; }
-  .badge-enviado { background: #e6f1fb; color: #185fa5; border-color: #185fa5; }
-  .badge-aceptado { background: #eaf3de; color: #3b6d11; border-color: #3b6d11; }
-  .badge-rechazado { background: #fcebeb; color: #a32d2d; border-color: #a32d2d; }
-  .ruta-footer {
     padding: 12px 15px;
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    border-top: 1px solid #000;
-    background: #f5f5f5;
+    background: #f8f9fa;
+    font-weight: 600;
+    font-size: 13px;
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
   }
-  .btn-ruta {
-    padding: 5px 16px;
-    font-family: monospace;
+  
+  .tabla-moderna td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #e9ecef;
+    font-size: 13px;
+  }
+  
+  .tabla-moderna tr:hover {
+    background: #f8f9fa;
+  }
+  
+  .producto-nombre {
+    font-weight: 500;
+    color: #212529;
+  }
+  
+  .producto-detalle {
     font-size: 11px;
-    border: 1px solid #000;
-    background: white;
-    cursor: pointer;
-    text-decoration: none;
-    color: black;
-  }
-  .btn-ruta-primary { background: #000; color: white; }
-  .btn-ruta-success { background: #eaf3de; border-color: #3b6d11; color: #3b6d11; }
-  .btn-ruta-danger { background: #fcebeb; border-color: #a32d2d; color: #a32d2d; }
-  textarea {
-    font-family: monospace;
-    font-size: 11px;
-    border: 1px solid #999;
-    padding: 5px;
-    transition: border-color 0.2s;
-  }
-  textarea.obs-error {
-    border-color: #a32d2d !important;
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(163, 45, 45, 0.2);
-  }
-  .obs-hint {
-    font-family: monospace;
-    font-size: 10px;
-    color: #a32d2d;
-    display: none;
+    color: #6c757d;
     margin-top: 3px;
   }
-  .obs-hint.visible {
+  
+  .checkbox-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+  
+  .checkbox-si {
+    background: #d4edda;
+    color: #155724;
+  }
+  
+  .checkbox-no {
+    background: #f8d7da;
+    color: #721c24;
+  }
+  
+  .respuesta-card {
+    background: #f8f9fa;
+    border-left: 4px solid #28a745;
+    padding: 15px;
+    margin-top: 10px;
+    border-radius: 6px;
+  }
+  
+  .footer-acciones {
+    padding: 20px 25px;
+    background: #f8f9fa;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+  
+  .btn-moderno {
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .btn-moderno:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .btn-secondary {
+    background: #6c757d;
+    color: white;
+  }
+  
+  .btn-primary {
+    background: #007bff;
+    color: white;
+  }
+  
+  .btn-success {
+    background: #28a745;
+    color: white;
+  }
+  
+  .btn-danger {
+    background: #dc3545;
+    color: white;
+  }
+  
+  .grupo-acciones {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  
+  .textarea-moderna {
+    padding: 8px 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    font-size: 13px;
+    width: 280px;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+  
+  .textarea-moderna:focus {
+    outline: none;
+    border-color: #80bdff;
+    box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+  }
+  
+  .textarea-moderna.error {
+    border-color: #dc3545;
+    background: #fff5f5;
+  }
+  
+  .error-hint {
+    font-size: 11px;
+    color: #dc3545;
+    margin-top: 5px;
+    display: none;
+  }
+  
+  .error-hint.visible {
     display: block;
+  }
+  
+  @media (max-width: 768px) {
+    .info-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    
+    .footer-acciones {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    
+    .textarea-moderna {
+      width: 100%;
+    }
+    
+    .tabla-moderna {
+      font-size: 11px;
+    }
+    
+    .tabla-moderna th,
+    .tabla-moderna td {
+      padding: 8px 10px;
+    }
+  }
+  
+  @media print {
+    .footer-acciones,
+    .btn-moderno {
+      display: none;
+    }
+    
+    .detalle-card {
+      box-shadow: none;
+    }
+    
+    .info-grid {
+      background: white;
+    }
   }
 </style>
 
-<div class="ruta-card">
-  <div class="ruta-header">HOJA DE RUTA - ENVÍO #{{ envio.id }}</div>
-
-  <div class="ruta-info">
-    <div><strong>ORIGEN:</strong> {{ envio.origen }}</div>
-    <div><strong>DESTINO:</strong> {{ envio.destino }}</div>
-    <div><strong>FECHA:</strong> {{ envio.fecha_creacion|date:"d/m/Y H:i" }}</div>
-    <div><strong>ESTADO:</strong> <span class="badge-pdf badge-{{ envio.estado }}">{{ envio.get_estado_display }}</span></div>
-    {% if envio.fecha_evento %}<div><strong>EVENTO:</strong> {{ envio.fecha_evento|date:"d/m/Y H:i" }}</div>{% endif %}
-    {% if envio.descripcion %}<div><strong>OBS:</strong> {{ envio.descripcion }}</div>{% endif %}
+<div class="detalle-card">
+  <div class="detalle-header">
+    <h2>📦 Envío #{{ envio.id }}</h2>
+    <p>Detalle completo del envío y gestión de estado</p>
   </div>
 
-  <div class="ruta-seccion">
-    <div class="ruta-seccion-titulo">PRODUCTOS</div>
-    <table class="ruta-tabla">
+  <div class="info-grid">
+    <div class="info-item">
+      <span class="info-label">📍 Origen</span>
+      <span class="info-value">{{ envio.origen.nombre }}</span>
+    </div>
+    <div class="info-item">
+      <span class="info-label">🎯 Destino</span>
+      <span class="info-value">{{ envio.destino.nombre }}</span>
+    </div>
+    <div class="info-item">
+      <span class="info-label">📅 Fecha de creación</span>
+      <span class="info-value">{{ envio.fecha_creacion|date:"d/m/Y H:i" }}</span>
+    </div>
+    <div class="info-item">
+      <span class="info-label">⚡ Estado</span>
+      <span class="info-value">
+        <span class="badge-estado badge-{{ envio.estado }}">
+          {{ envio.get_estado_display }}
+        </span>
+      </span>
+    </div>
+    {% if envio.fecha_evento %}
+    <div class="info-item">
+      <span class="info-label">🎉 Fecha del evento</span>
+      <span class="info-value">{{ envio.fecha_evento|date:"d/m/Y H:i" }}</span>
+    </div>
+    {% endif %}
+    {% if envio.plan_evento %}
+    <div class="info-item">
+      <span class="info-label">📋 Plan del evento</span>
+      <span class="info-value">{{ envio.plan_evento.nombre }}</span>
+    </div>
+    {% endif %}
+    {% if envio.cantidad_invitados %}
+    <div class="info-item">
+      <span class="info-label">👥 Invitados</span>
+      <span class="info-value">{{ envio.cantidad_invitados }} personas</span>
+    </div>
+    {% endif %}
+    {% if envio.descripcion %}
+    <div class="info-item">
+      <span class="info-label">📝 Descripción</span>
+      <span class="info-value">{{ envio.descripcion }}</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="seccion">
+    <div class="seccion-titulo">
+      <span>📋</span> Productos del envío
+    </div>
+    <table class="tabla-moderna">
       <thead>
-        <tr><th>✓</th><th>PRODUCTO</th><th>CANTIDAD</th><th>DEVOLUCIÓN</th></tr>
+        <tr>
+          <th style="width: 40px">✓</th>
+          <th>Producto</th>
+          <th>Cantidad</th>
+          <th>Devoluble</th>
+        </tr>
       </thead>
       <tbody>
         {% for d in envio.detalles.all %}
         <tr>
-          <td style="text-align:center">{% if d.check_incluido %}✓{% else %}✗{% endif %}</td>
+          <td style="text-align: center">
+            <span class="checkbox-icon {% if d.check_incluido %}checkbox-si{% else %}checkbox-no{% endif %}">
+              {% if d.check_incluido %}✓{% else %}✗{% endif %}
+            </span>
+          </td>
           <td>
-            <strong>{{ d.producto.nombre }}</strong>
-            {% if d.producto.cantidad_gramos %}<br><span style="font-size:9px;color:#666;">{{ d.producto.cantidad_gramos }}</span>{% endif %}
+            <div class="producto-nombre">{{ d.producto.nombre }}</div>
+            {% if d.producto.cantidad_gramos %}
+            <div class="producto-detalle">{{ d.producto.cantidad_gramos }}</div>
+            {% endif %}
           </td>
           <td>{{ d.cantidad|default:"-" }}</td>
-          <td>{% if d.producto.es_devolvible %}✓ Sí{% else %}✗ No{% endif %}</td>
+          <td>
+            {% if d.producto.es_devolvible %}
+            <span style="color: #28a745;">✓ Sí</span>
+            {% else %}
+            <span style="color: #dc3545;">✗ No</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="4" style="text-align: center; color: #6c757d;">
+            No hay productos en este envío
+          </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 
-  {% if envio.observacion %}
-  <div class="ruta-seccion">
-    <div class="ruta-seccion-titulo">RESPUESTA DEL SALÓN</div>
-    <div style="padding: 10px 15px; font-size: 11px;">{{ envio.observacion }}</div>
+  {% if envio.empleados_asignados.all %}
+  <div class="seccion">
+    <div class="seccion-titulo">
+      <span>👥</span> Personal asignado
+    </div>
+    <table class="tabla-moderna">
+      <thead>
+        <tr>
+          <th>Tipo</th>
+          <th>Cantidad</th>
+          <th>Horas</th>
+          <th>Costo total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for emp in envio.empleados_asignados.all %}
+        <tr>
+          <td>{{ emp.tipo_empleado.nombre }}</td>
+          <td>{{ emp.cantidad }}</td>
+          <td>{{ emp.horas_trabajadas }}</td>
+          <td>${{ emp.costo_total|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
   {% endif %}
 
-  <div class="ruta-footer">
-    <a href="{% url 'lista_envios' %}" class="btn-ruta">VOLVER</a>
+  {% if envio.observacion %}
+  <div class="seccion">
+    <div class="seccion-titulo">
+      <span>💬</span> Respuesta del salón
+    </div>
+    <div class="respuesta-card">
+      {{ envio.observacion }}
+    </div>
+  </div>
+  {% endif %}
 
-    {% if user.perfil.rol == 'departamento' and envio.estado == 'pendiente' %}
-      <form method="post" action="{% url 'enviar_envio' envio.id %}" style="display:inline;">
-        {% csrf_token %}
-        <button type="submit" class="btn-ruta btn-ruta-primary">ENVIAR</button>
-      </form>
-    {% endif %}
+  <div class="footer-acciones">
+    <a href="{% url 'lista_envios' %}" class="btn-moderno btn-secondary">
+      ← Volver a envíos
+    </a>
 
-    {% if user.perfil.rol == 'salon' and envio.estado == 'enviado' %}
-      <div style="display:flex; gap:10px; align-items:flex-start;">
+    <div class="grupo-acciones">
+      {% if user.perfil.rol == 'departamento' and envio.estado == 'pendiente' %}
+        <form method="post" action="{% url 'enviar_envio' envio.id %}" style="display:inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn-moderno btn-primary">
+            ✈️ Enviar al salón
+          </button>
+        </form>
+      {% endif %}
 
-        <div style="display:flex; flex-direction:column;">
-          <textarea
-            id="obs"
-            rows="2"
-            placeholder="Observación (obligatoria para rechazar)"
-            style="width:260px;"
-          ></textarea>
-          <span class="obs-hint" id="obs-hint">⚠️ Completá la observación antes de rechazar.</span>
+      {% if user.perfil.rol == 'salon' and envio.estado == 'enviado' %}
+        <div style="display:flex; gap:10px; align-items:flex-start; flex-wrap: wrap;">
+          <div>
+            <textarea 
+              id="observacion"
+              rows="3"
+              placeholder="Escribí aquí tu observación (obligatoria para rechazar)..."
+              class="textarea-moderna"
+              style="width: 300px;"
+            ></textarea>
+            <div class="error-hint" id="error-hint">
+              ⚠️ La observación es obligatoria para rechazar el envío
+            </div>
+          </div>
+          
+          <form method="post" action="{% url 'aceptar_envio' envio.id %}" style="display:inline;">
+            {% csrf_token %}
+            <input type="hidden" name="observacion" id="obs-aceptar">
+            <button type="submit" class="btn-moderno btn-success" onclick="document.getElementById('obs-aceptar').value=document.getElementById('observacion').value">
+              ✓ Aceptar envío
+            </button>
+          </form>
+          
+          <form method="post" action="{% url 'rechazar_envio' envio.id %}" style="display:inline;" id="form-rechazar">
+            {% csrf_token %}
+            <input type="hidden" name="observacion" id="obs-rechazar">
+            <button type="button" class="btn-moderno btn-danger" onclick="enviarRechazo()">
+              ✗ Rechazar (falta de productos)
+            </button>
+          </form>
         </div>
+      {% endif %}
 
-        <!-- RECHAZAR: requiere observación obligatoria -->
-        <form method="post" action="{% url 'rechazar_envio' envio.id %}" style="display:inline;" id="form-rechazar">
+      {% if user.perfil.rol == 'departamento' and envio.estado == 'aceptado' %}
+        <form method="post" action="{% url 'entregar_envio' envio.id %}" style="display:inline;">
           {% csrf_token %}
-          <input type="hidden" name="observacion" id="obs-rechazar">
-          <button
-            type="button"
-            class="btn-ruta btn-ruta-danger"
-            onclick="enviarRechazo()"
-          >FALTA DE PRODUCTOS</button>
+          <button type="submit" class="btn-moderno btn-success">
+            ✅ Marcar como entregado
+          </button>
         </form>
-
-        <!-- ACEPTAR: observación opcional -->
-        <form method="post" action="{% url 'aceptar_envio' envio.id %}" style="display:inline;">
-          {% csrf_token %}
-          <input type="hidden" name="observacion" id="obs-aceptar">
-          <button
-            type="submit"
-            class="btn-ruta btn-ruta-success"
-            onclick="document.getElementById('obs-aceptar').value=document.getElementById('obs').value"
-          >ACEPTAR</button>
-        </form>
-
-      </div>
-    {% endif %}
+      {% endif %}
+    </div>
   </div>
 </div>
 
 {% if user.perfil.rol == 'salon' and envio.estado == 'enviado' %}
 <script>
   function enviarRechazo() {
-    var obs = document.getElementById('obs');
-    var hint = document.getElementById('obs-hint');
-    var texto = obs.value.trim();
-
+    const obsTextarea = document.getElementById('observacion');
+    const errorHint = document.getElementById('error-hint');
+    const texto = obsTextarea.value.trim();
+    
     if (!texto) {
-      // Mostrar error visual
-      obs.classList.add('obs-error');
-      hint.classList.add('visible');
-      obs.focus();
+      obsTextarea.classList.add('error');
+      errorHint.classList.add('visible');
+      obsTextarea.focus();
       return;
     }
-
-    // Todo OK: limpiar error, copiar valor y enviar
-    obs.classList.remove('obs-error');
-    hint.classList.remove('visible');
+    
+    obsTextarea.classList.remove('error');
+    errorHint.classList.remove('visible');
     document.getElementById('obs-rechazar').value = texto;
     document.getElementById('form-rechazar').submit();
   }
-
-  // Limpiar el error visual cuando el usuario empieza a escribir
-  document.getElementById('obs').addEventListener('input', function () {
-    this.classList.remove('obs-error');
-    document.getElementById('obs-hint').classList.remove('visible');
+  
+  document.getElementById('observacion').addEventListener('input', function() {
+    this.classList.remove('error');
+    document.getElementById('error-hint').classList.remove('visible');
   });
 </script>
 {% endif %}

@@ -10,6 +10,12 @@
 
 {% block content %}
 <style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
   .tipo-grupo {
     margin-bottom: 25px;
     border: 1px solid #ddd;
@@ -22,6 +28,16 @@
     padding: 10px 15px;
     font-weight: bold;
     font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .tipo-header:hover {
+    background: #2c3e50;
+  }
+  .tipo-header .toggle-icon {
+    font-size: 12px;
   }
   .tipo-tabla {
     width: 100%;
@@ -39,12 +55,13 @@
     border-bottom: 1px solid #eee;
     vertical-align: middle;
   }
+  /* Ocultar columnas 2 y 3 (Stock actual y Usar del stock) */
   .tipo-tabla th:nth-child(2),
-.tipo-tabla th:nth-child(3),
-.tipo-tabla td:nth-child(2),
-.tipo-tabla td:nth-child(3) {
+  .tipo-tabla th:nth-child(3),
+  .tipo-tabla td:nth-child(2),
+  .tipo-tabla td:nth-child(3) {
     display: none;
-}
+  }
   .stock-badge {
     font-weight: 600;
     color: #2e7d32;
@@ -69,20 +86,153 @@
     color: #999;
     display: block;
   }
+  .producto-nombre {
+    font-weight: 600;
+  }
+  .stock-info {
+    font-size: 11px;
+    color: #666;
+    margin-top: 3px;
+  }
+  .form-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .form-group {
+    flex: 1;
+    min-width: 200px;
+  }
+  .form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    font-size: 13px;
+  }
+  .form-group select, .form-group input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+  .card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 20px 25px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+  }
+  .card-title {
+    font-size: 20px;
+    font-weight: 600;
+  }
+  .card-body {
+    padding: 25px;
+  }
+  .btn {
+    padding: 8px 20px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .btn-primary {
+    background: #007bff;
+    color: white;
+  }
+  .btn-secondary {
+    background: #6c757d;
+    color: white;
+  }
+  .filtro-categorias {
+    margin: 15px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    display: none;
+  }
+  .filtro-categorias.visible {
+    display: block;
+  }
+  .categorias-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .categoria-chip {
+    padding: 5px 12px;
+    background: #e9ecef;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .categoria-chip:hover {
+    background: #dee2e6;
+  }
+  .categoria-chip.active {
+    background: #007bff;
+    color: white;
+  }
+  .categoria-chip.select-all {
+    background: #28a745;
+    color: white;
+  }
+  .buscar-producto {
+    margin-bottom: 15px;
+  }
+  .buscar-producto input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+  .seccion-evento {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+  }
+  .seccion-evento h4 {
+    margin: 0 0 15px 0;
+    color: #495057;
+  }
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+  }
+  @media (max-width: 768px) {
+    .grid-2 {
+      grid-template-columns: 1fr;
+    }
+  }
 </style>
 
-<div class="card" style="max-width: 1200px;">
+<div class="card" style="max-width: 1200px; margin: 0 auto;">
   <div class="card-header">
-    <span class="card-title">Nuevo envío</span>
+    <span class="card-title">📦 Nuevo envío</span>
   </div>
   <div class="card-body">
     <form method="post" id="form-envio">
       {% csrf_token %}
 
+      <!-- FILA 1: Salón destino y Descripción -->
       <div class="form-row">
         <div class="form-group">
-          <label for="destino">Salón destino</label>
-          <select name="destino" id="destino" onchange="cargarStock(this.value)">
+          <label for="destino">🎯 Salón destino *</label>
+          <select name="destino" id="destino" onchange="cargarStock(this.value)" required>
             <option value="">— elegí un salón —</option>
             {% for salon in salones %}
               <option value="{{ salon.id }}">{{ salon.nombre }}</option>
@@ -90,21 +240,72 @@
           </select>
         </div>
         <div class="form-group">
-          <label for="descripcion">Descripción (opcional)</label>
+          <label for="descripcion">📝 Descripción (opcional)</label>
           <input type="text" name="descripcion" id="descripcion" placeholder="Ej: pedido urgente mesa 4">
         </div>
       </div>
 
-      <div class="form-group">
-        <label for="fecha_evento">Fecha del evento</label>
-        <input type="datetime-local" name="fecha_evento" id="fecha_evento">
-        <small style="color: #6b6a65; font-size: 11px;">Fecha y hora del evento para este envío</small>
+      <!-- SECCIÓN: DATOS DEL EVENTO (IMPORTANTE) -->
+      <div class="seccion-evento">
+        <h4>📋 DATOS DEL EVENTO</h4>
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="fecha_evento">📅 Fecha del evento *</label>
+            <input type="datetime-local" name="fecha_evento" id="fecha_evento" required>
+            <small style="color: #6b6a65; font-size: 11px;">Fecha y hora del evento</small>
+          </div>
+          
+          <div class="form-group">
+            <label for="tipo_evento">🏷️ Tipo de evento *</label>
+            <select name="tipo_evento" id="tipo_evento" required>
+              <option value="">— seleccioná un tipo —</option>
+              <option value="Cumpleaños">🎂 Cumpleaños</option>
+              <option value="Casamiento">💒 Casamiento</option>
+              <option value="Empresarial">🏢 Empresarial</option>
+              <option value="Graduación">🎓 Graduación</option>
+              <option value="Aniversario">💝 Aniversario</option>
+              <option value="Otro">📌 Otro</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="plan_evento">📋 Plan del evento *</label>
+            <select name="plan_evento" id="plan_evento" required>
+              <option value="">— seleccioná un plan —</option>
+              <option value="Básico">🥤 Básico (Solo bebidas)</option>
+              <option value="Completo">🍔 Completo (Comida + Bebidas)</option>
+              <option value="Premium">✨ Premium (Comida + Bebidas + Postres)</option>
+              <option value="VIP">👑 VIP (Todo incluido)</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="cantidad_invitados">👥 Cantidad de invitados</label>
+            <input type="number" name="cantidad_invitados" id="cantidad_invitados" min="1" placeholder="Ej: 50">
+            <small style="color: #6b6a65; font-size: 11px;">Opcional</small>
+          </div>
+        </div>
       </div>
 
+      <!-- Filtro de categorías -->
+      <div id="filtro-categorias" class="filtro-categorias">
+        <label>🏷️ Filtrar por categoría:</label>
+        <div class="categorias-list" id="categorias-list"></div>
+      </div>
+
+      <!-- Buscador de productos -->
+      <div id="buscador-container" style="display: none;">
+        <div class="buscar-producto">
+          <input type="text" id="buscar-producto" placeholder="🔍 Buscar producto..." onkeyup="filtrarProductos()">
+        </div>
+      </div>
+
+      <!-- Alerta de stock -->
       <div id="stock-alert" style="display: none; background: #faeeda; border: 0.5px solid #854f0b; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #854f0b; margin-bottom: 16px;">
         <span id="stock-alert-text"></span>
       </div>
 
+      <!-- Productos -->
       <div id="productos-section" style="display: none;">
         <div id="productos-container"></div>
         <small style="display: block; margin-top: 10px; color: #6b6a65;">
@@ -112,7 +313,8 @@
           • <strong>"Usar del stock"</strong>: productos que YA están en el salón y se van a usar en el evento.<br>
           • <strong>"Enviar nuevos"</strong>: productos adicionales que hay que enviar desde cocina.<br>
           • <strong>Bebidas (🍹)</strong>: lo que sobra vuelve al stock.<br>
-          • <strong>Comida (🍔)</strong>: lo que sobra se descarta.
+          • <strong>Comida (🍔)</strong>: lo que sobra se descarta.<br>
+          • <strong>Click en la categoría</strong>: podés ocultar/mostrar productos.
         </small>
       </div>
 
@@ -120,6 +322,7 @@
         Elegí un salón para ver el stock actual y crear el envío
       </div>
 
+      <!-- Botones -->
       <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px;">
         <a href="{% url 'lista_envios' %}" class="btn btn-secondary">Cancelar</a>
         <button type="submit" class="btn btn-primary" id="btn-submit" disabled>Crear envío</button>
@@ -131,10 +334,80 @@
 <script>
 const API_URL = "{% url 'api_stock_salon' 0 %}".replace('/0/', '/');
 
+let categoriasActuales = [];
+let categoriaActiva = 'todos';
+let busquedaActual = '';
+
 function extraerNumero(texto) {
   if (!texto) return 0;
   const match = texto.match(/(\d+(?:[.,]\d+)?)/);
   return match ? parseFloat(match[1].replace(',', '.')) : 0;
+}
+function filtrarProductos() {
+  const input = document.getElementById('buscar-producto');
+  busquedaActual = (input?.value || '').toLowerCase().trim();
+
+  const grupos = document.querySelectorAll('.tipo-grupo');
+
+  grupos.forEach(grupo => {
+    const header = grupo.querySelector('.tipo-header');
+    const tipoNombre = header.dataset.tipo;
+    const productos = grupo.querySelectorAll('tbody tr');
+
+    let algunVisible = false;
+
+    productos.forEach(producto => {
+      const nombreProducto = producto
+        .querySelector('.producto-nombre')
+        .textContent
+        .toLowerCase()
+        .trim();
+
+      const coincideBusqueda =
+        busquedaActual === '' ||
+        nombreProducto.includes(busquedaActual);
+
+      const coincideCategoria =
+        categoriaActiva === 'todos' ||
+        tipoNombre === categoriaActiva;
+
+      if (coincideBusqueda && coincideCategoria) {
+        producto.style.display = '';
+        algunVisible = true;
+      } else {
+        producto.style.display = 'none';
+      }
+    });
+
+    grupo.style.display = algunVisible ? '' : 'none';
+  });
+}
+function seleccionarCategoria(categoria) {
+  categoriaActiva = categoria;
+  
+  document.querySelectorAll('.categoria-chip').forEach(chip => {
+    if (chip.getAttribute('data-categoria') === categoria) {
+      chip.classList.add('active');
+    } else {
+      chip.classList.remove('active');
+    }
+  });
+  
+  filtrarProductos();
+}
+
+function toggleGrupo(header) {
+  const grupo = header.closest('.tipo-grupo');
+  const tabla = grupo.querySelector('.tipo-tabla');
+  const icono = header.querySelector('.toggle-icon');
+  
+  if (tabla.style.display === 'none') {
+    tabla.style.display = '';
+    icono.innerHTML = '▼';
+  } else {
+    tabla.style.display = 'none';
+    icono.innerHTML = '▶';
+  }
 }
 
 async function cargarStock(salonId) {
@@ -144,11 +417,15 @@ async function cargarStock(salonId) {
   const alertDiv = document.getElementById('stock-alert');
   const alertText = document.getElementById('stock-alert-text');
   const btnSubmit = document.getElementById('btn-submit');
+  const filtroDiv = document.getElementById('filtro-categorias');
+  const buscadorDiv = document.getElementById('buscador-container');
 
   if (!salonId) {
     section.style.display = 'none';
     placeholder.style.display = 'block';
     alertDiv.style.display = 'none';
+    filtroDiv.classList.remove('visible');
+    buscadorDiv.style.display = 'none';
     btnSubmit.disabled = true;
     return;
   }
@@ -161,10 +438,8 @@ async function cargarStock(salonId) {
     const res = await fetch(API_URL + salonId + '/');
     const data = await res.json();
 
-    // Agrupar por tipo.nombre
     const grupos = {};
     data.productos.forEach(p => {
-      // Obtener el nombre del tipo (puede venir como p.tipo o p.tipo__nombre)
       const tipoNombre = p.tipo_nombre || p.tipo || 'OTROS';
       if (!grupos[tipoNombre]) grupos[tipoNombre] = [];
       grupos[tipoNombre].push(p);
@@ -172,18 +447,38 @@ async function cargarStock(salonId) {
 
     let html = '';
     let productosConStock = [];
+    let categorias = [];
 
-    // Orden fijo de tipos
-    const ordenTipos = ['Recepción', 'Isla Cheddar', 'Isla Campestre', 'Isla Sushi', 'Arrollado', 'Isla Pasta', 'Tartaletas', 'Snacks', 'Stand de Golosinas', 'Pernil', 'Isla Verduras', 'Extras'];
+    const tiposReales = Object.keys(grupos).sort();
+    categorias = [...tiposReales];
+    categoriasActuales = categorias;
     
-    for (const tipoNombre of ordenTipos) {
+    let categoriasHtml = `<div class="categoria-chip select-all" data-categoria="todos" onclick="seleccionarCategoria('todos')">📋 Todas</div>`;
+    categorias.forEach(cat => {
+      categoriasHtml += `<div class="categoria-chip" data-categoria="${cat}" onclick="seleccionarCategoria('${cat}')">🍽️ ${cat}</div>`;
+    });
+    document.getElementById('categorias-list').innerHTML = categoriasHtml;
+    filtroDiv.classList.add('visible');
+    buscadorDiv.style.display = 'block';
+    
+    for (const tipoNombre of tiposReales) {
       const productos = grupos[tipoNombre];
       if (!productos || productos.length === 0) continue;
       
       html += `<div class="tipo-grupo">`;
-      html += `<div class="tipo-header">🍔 ${tipoNombre.toUpperCase()}</div>`;
+      html += `<div class="tipo-header" data-tipo="${tipoNombre}" onclick="toggleGrupo(this)">`;
+      html += `<span>🍽️ ${tipoNombre.toUpperCase()}</span>`;
+      html += `<span class="toggle-icon">▼</span>`;
+      html += `</div>`;
       html += `<table class="tipo-tabla">`;
-      html += `<thead><tr><th>Producto</th><th>Stock actual</th><th>🎯 Usar del stock</th><th>📦 Enviar nuevos</th></tr></thead>`;
+      html += `<thead>`;
+      html += `<tr>
+        <th>Producto</th>
+        <th>Stock actual</th>
+        <th>🎯 Usar del stock</th>
+        <th>📦 Enviar nuevos</th>
+      </tr>`;
+      html += `</thead>`;
       html += `<tbody>`;
 
       productos.forEach(p => {
@@ -195,32 +490,37 @@ async function cargarStock(salonId) {
         }
 
         html += `<tr>
-          <td><strong>${p.nombre}</strong></td>
+          <td>
+            <div class="producto-nombre">${p.nombre}</div>
+            <div class="stock-info">Stock disponible: ${p.stock_salon || '0'}</div>
+          </td>
           <td><span class="stock-badge">📦 ${p.stock_salon || '0'}</span></td>
           <td>
             <input type="number" 
                    name="usar_stock_${p.id}" 
+                   id="usar_${p.id}"
                    value="0" 
                    min="0" 
                    max="${stockNumero}" 
+                   step="1"
                    class="input-usar"
-                   ${!tieneStock ? 'disabled' : ''}>
+                   ${!tieneStock || stockNumero === 0 ? 'disabled' : ''}>
             <span class="max-text">Máx: ${stockNumero}</span>
-            <input type="hidden" name="producto_id_${p.id}" value="${p.id}">
           </td>
           <td>
             <input type="text" 
                    name="enviar_${p.id}" 
-                   value="0" 
+                   id="enviar_${p.id}"
+                   value="" 
                    class="input-enviar" 
-                   placeholder="Ej: 10">
-            <input type="hidden" name="producto" value="${p.id}">
-            <input type="hidden" name="check_incluido" value="on">
+                   placeholder="Ej: 10 unidades">
           </td>
         </tr>`;
       });
 
-      html += `</tbody></table></div>`;
+      html += `</tbody>`;
+      html += `</table>`;
+      html += `</div>`;
     }
 
     container.innerHTML = html;
@@ -238,37 +538,97 @@ async function cargarStock(salonId) {
     }
 
     btnSubmit.disabled = false;
+    
+    categoriaActiva = 'todos';
+    busquedaActual = '';
+    document.getElementById('buscar-producto').value = '';
 
   } catch (e) {
-    console.error(e);
-    container.innerHTML = '<div style="padding:20px;text-align:center;color:red;">Error al cargar el stock</div>';
+    console.error('Error:', e);
+    container.innerHTML = '<div style="padding:20px;text-align:center;color:red;">❌ Error al cargar el stock. Por favor, recargá la página.</div>';
+    btnSubmit.disabled = true;
   }
 }
 
+// Validación del formulario antes de enviar
 document.getElementById('form-envio').addEventListener('submit', function(e) {
   const usarStockInputs = document.querySelectorAll('.input-usar');
   const enviarInputs = document.querySelectorAll('.input-enviar');
+  const destinoSelect = document.getElementById('destino');
+  const fechaEvento = document.getElementById('fecha_evento');
+  const tipoEvento = document.getElementById('tipo_evento');
+  const planEvento = document.getElementById('plan_evento');
   
   let tieneAlgo = false;
+  let errores = [];
+  
+  // Validar campos obligatorios
+  if (!destinoSelect.value) {
+    e.preventDefault();
+    alert('❌ Por favor, seleccioná un salón destino.');
+    return;
+  }
+  
+  if (!fechaEvento.value) {
+    e.preventDefault();
+    alert('❌ Por favor, seleccioná la fecha del evento.');
+    return;
+  }
+  
+  if (!tipoEvento.value) {
+    e.preventDefault();
+    alert('❌ Por favor, seleccioná el tipo de evento.');
+    return;
+  }
+  
+  if (!planEvento.value) {
+    e.preventDefault();
+    alert('❌ Por favor, seleccioná el plan del evento.');
+    return;
+  }
   
   usarStockInputs.forEach(input => {
     if (!input.disabled) {
       const val = parseInt(input.value) || 0;
-      if (val > 0) tieneAlgo = true;
+      if (val > 0) {
+        tieneAlgo = true;
+        const max = parseInt(input.getAttribute('max')) || 0;
+        if (val > max) {
+          errores.push(`No podés usar más de ${max} unidades de stock`);
+        }
+      }
     }
   });
   
   enviarInputs.forEach(input => {
     const val = input.value.trim();
-    if (val !== '' && val !== '0' && val !== '0g' && val !== '0kg') {
-      tieneAlgo = true;
+    if (val !== '' && val !== '0') {
+      const numero = parseFloat(val);
+      if (isNaN(numero) && val !== '') {
+        errores.push(`"${val}" no es una cantidad válida`);
+      } else if (numero > 0) {
+        tieneAlgo = true;
+      }
     }
   });
   
+  if (errores.length > 0) {
+    e.preventDefault();
+    alert('❌ Errores en el formulario:\n\n' + errores.join('\n'));
+    return;
+  }
+  
   if (!tieneAlgo) {
     e.preventDefault();
-    alert('Tenés que usar stock existente O enviar nuevos productos (o ambos).');
+    alert('❌ Tenés que usar stock existente O enviar nuevos productos (o ambos).');
+    return;
+  }
+  
+  if (!confirm('¿Estás seguro de crear este envío?')) {
+    e.preventDefault();
   }
 });
+
+console.log('✅ Template cargado correctamente');
 </script>
 {% endblock %}

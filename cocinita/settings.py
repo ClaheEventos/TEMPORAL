@@ -13,8 +13,6 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import os
 
-
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ⚠️ IMPORTANTE: Usar variable de entorno para producción
@@ -22,11 +20,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-vvp)peja#)ffq_)ib-#r%xuia!1(gq1a*w9q%mtnp#t@fp96p0')
 
 # 🔹 Modo producción: DEBUG = False
-DEBUG = False  # ⚠️ IMPORTANTE: Siempre False en producción
+DEBUG = True  # ⚠️ IMPORTANTE: Siempre False en producción
 
 # 🔹 Tu dominio en PythonAnywhere
 ALLOWED_HOSTS = ['*']  # Solo para desarrollo local
-
 
 # Apps
 INSTALLED_APPS = [
@@ -58,7 +55,9 @@ MIDDLEWARE = [
 # 🔹 CORS - Configuración más segura para producción
 CORS_ALLOWED_ORIGINS = [
     "https://personaldeit.pythonanywhere.com",  # Tu dominio principal
-    "https://www.personaldeit.pythonanywhere.com",
+    "https://127.0.0.1:8000",  # ✅ CORREGIDO: agregué los : después de https
+    "http://127.0.0.1:8000",   # También agregá HTTP para desarrollo local
+    "http://localhost:8000",   # Y localhost
 ]
 
 # Si necesitas más orígenes (ej: frontend separado), añádelos aquí
@@ -89,7 +88,6 @@ WSGI_APPLICATION = 'cocinita.wsgi.application'
 # 🔹 BASE DE DATOS - Configuración para MySQL en PythonAnywhere
 # Conectando a: personaldeit$default
 
-
 # Opcional: Si quieres mantener SQLite para desarrollo local
 # Puedes comentar MySQL y descomentar esto en local
 DATABASES = {
@@ -97,7 +95,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
- }
+}
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -131,9 +129,13 @@ LOGOUT_REDIRECT_URL = '/login/'
 # 🔹 Archivos estáticos (modo producción)
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_DIRS = [
-    BASE_DIR / 'static',  # Para archivos estáticos manuales
-]
+
+# ✅ CORREGIDO: Verificar si la carpeta static existe antes de agregarla
+static_dir = BASE_DIR / 'static'
+if static_dir.exists():
+    STATICFILES_DIRS = [static_dir]
+else:
+    STATICFILES_DIRS = []  # O comentá esta línea si no existe
 
 # Usar WhiteNoise para servir estáticos en producción
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
@@ -143,14 +145,14 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # 🔹 Configuración de sesiones (para producción)
-SESSION_COOKIE_SECURE = True   # Solo enviar cookies por HTTPS
-CSRF_COOKIE_SECURE = True      # CSRF solo por HTTPS
-SECURE_SSL_REDIRECT = True     # Redirigir HTTP a HTTPS
+SESSION_COOKIE_SECURE = False   # Solo enviar cookies por HTTPS
+CSRF_COOKIE_SECURE = False      # CSRF solo por HTTPS
+SECURE_SSL_REDIRECT = False     # Redirigir HTTP a HTTPS
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # 🔹 Configuración de seguridad adicional (opcional pero recomendado)
-SECURE_BROWSER_XSS_FILTER = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_BROWSER_XSS_FILTER = False
+SECURE_CONTENT_TYPE_NOSNIFF = False
 X_FRAME_OPTIONS = 'DENY'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
