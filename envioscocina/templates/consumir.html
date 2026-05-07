@@ -1,80 +1,99 @@
 {% extends 'base.html' %}
-
 {% block content %}
 
-<h2>📦 Marcar lo que SOBRÓ después del evento</h2>
+<div style="padding: 1.5rem 0;">
 
-<div style="margin-bottom: 20px;">
-    <p><strong>Salón:</strong> {{ user.perfil.salon.nombre }}</p>
-    <div style="background: #f0f0f0; padding: 10px; border-radius: 5px;">
-        <p><strong>📌 Reglas:</strong></p>
-        <ul style="margin: 0;">
-            <li>🍹 <strong>Bebidas</strong> (reusables): lo que sobra <span style="color: green;">VUELVE AL STOCK</span> para el próximo evento</li>
-            <li>🍔 <strong>Comida</strong> (no reusables): lo que sobra <span style="color: red;">SE DESCARTA</span> (stock = 0)</li>
-        </ul>
+  <div style="margin-bottom: 1.5rem;">
+    <h2 style="font-size: 18px; font-weight: 500; margin-bottom: 4px;">Registro de sobrantes</h2>
+    <p style="font-size: 13px; color: #6b6a65;">Indicá cuánto sobró de cada producto después del evento</p>
+  </div>
+
+  <div style="display: inline-flex; align-items: center; gap: 6px; background: #f5f5f3; border: 0.5px solid rgba(0,0,0,.1); border-radius: 8px; padding: 4px 10px; font-size: 12px; color: #6b6a65; margin-bottom: 1rem;">
+    Salón: <strong>{{ user.perfil.salon.nombre }}</strong>
+  </div>
+
+  <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1.5rem;">
+    <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #6b6a65; background: #f5f5f3; border: 0.5px solid rgba(0,0,0,.1); border-radius: 20px; padding: 4px 10px;">
+      <div style="width: 8px; height: 8px; border-radius: 50%; background: #639922;"></div> Queda en stock
     </div>
-</div>
+    <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #6b6a65; background: #f5f5f3; border: 0.5px solid rgba(0,0,0,.1); border-radius: 20px; padding: 4px 10px;">
+      <div style="width: 8px; height: 8px; border-radius: 50%; background: #185FA5;"></div> Se espera devolución
+    </div>
+    <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #6b6a65; background: #f5f5f3; border: 0.5px solid rgba(0,0,0,.1); border-radius: 20px; padding: 4px 10px;">
+      <div style="width: 8px; height: 8px; border-radius: 50%; background: #A32D2D;"></div> Se descarta
+    </div>
+  </div>
 
-<table class="table table-bordered" style="width:100%; border-collapse: collapse;">
-    <thead>
-        <tr>
-            <th>Producto</th>
-            <th>Tipo</th>
-            <th>Stock actual</th>
-            <th>✨ ¿Cuánto SOBRÓ?</th>
-            <th>Qué pasa con lo sobrante</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for item in stock %}
-        <tr style="background-color: {% if item.producto.se_puede_reusar %}#e8f5e9{% else %}#ffebee{% endif %};">
-            <td style="padding: 10px;">
-                {{ item.producto.nombre }}
-            </td>
-            <td style="padding: 10px;">
-                {% if item.producto.se_puede_reusar %}
-                    🍹 <strong>Bebida (reusable)</strong>
-                {% else %}
-                    🍔 <strong>Comida (no reusable)</strong>
-                {% endif %}
-            </td>
-            <td style="padding: 10px; font-weight: bold;">
-                {{ item.cantidad }}
-            </td>
-            <td style="padding: 10px;">
-                <form method="post" action="{% url 'consumir_producto' %}" style="display: flex; gap: 5px; flex-wrap: wrap;">
-                    {% csrf_token %}
-                    <input type="hidden" name="producto" value="{{ item.producto.id }}">
-                    <input type="text" 
-                           name="sobrante" 
-                           placeholder="Ej: 8 unidades, 5 botellas" 
-                           required
-                           style="width: 120px; padding: 5px;">
-                    <input type="text" 
-                           name="comentario" 
-                           placeholder="Observación"
-                           style="width: 120px; padding: 5px;">
-                    <button type="submit" style="padding: 5px 10px;">
-                        Guardar
-                    </button>
-                </form>
-            </td>
-            <td style="padding: 10px;">
-                {% if item.producto.se_puede_reusar %}
-                    ✅ <span style="color: green;">Vuelve al stock</span>
-                {% else %}
-                    ❌ <span style="color: red;">Se descarta (stock = 0)</span>
-                {% endif %}
-            </td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="5" style="padding: 40px; text-align: center;">
-                No hay productos con stock en este salón.
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+  {% regroup stock by producto.comportamiento_stock as stock_groups %}
+  {% for group in stock_groups %}
+
+    {% if group.grouper == 'stock' %}
+      <p style="font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: #9e9d97; margin-bottom: 8px;">Impacta stock · queda para el próximo evento</p>
+    {% elif group.grouper == 'devuelve' %}
+      <p style="font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: #9e9d97; margin-bottom: 8px;">Se devuelve · se registra y se espera devolución a cocina</p>
+    {% else %}
+      <p style="font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: #9e9d97; margin-bottom: 8px;">Solo aviso · el sobrante se descarta</p>
+    {% endif %}
+
+    {% for item in group.list %}
+      <div style="
+        background: #fff;
+        border: 0.5px solid rgba(0,0,0,.08);
+        border-left: 3px solid {% if item.producto.comportamiento_stock == 'stock' %}#639922{% elif item.producto.comportamiento_stock == 'devuelve' %}#185FA5{% else %}#A32D2D{% endif %};
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 8px;
+      ">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px 16px;">
+          <div style="flex: 1;">
+            <div style="font-size: 14px; font-weight: 500;">{{ item.producto.nombre }}</div>
+           <div style="font-size: 12px; color: #6b6a65; margin-top: 4px;">Stock actual</div>
+<div style="font-size: 22px; font-weight: 500; color: #1a1a18; line-height: 1.2;">{{ item.cantidad }}</div>
+          </div>
+          <span style="
+            display: inline-flex; align-items: center;
+            padding: 4px 10px; border-radius: 20px;
+            font-size: 12px; font-weight: 500;
+            background: {% if item.producto.comportamiento_stock == 'stock' %}#EAF3DE{% elif item.producto.comportamiento_stock == 'devuelve' %}#E6F1FB{% else %}#FCEBEB{% endif %};
+            color: {% if item.producto.comportamiento_stock == 'stock' %}#3B6D11{% elif item.producto.comportamiento_stock == 'devuelve' %}#0C447C{% else %}#791F1F{% endif %};
+          ">
+            {{ item.producto.get_comportamiento_stock_display }}
+          </span>
+        </div>
+
+        <form method="post" action="{% url 'consumir_producto' %}" style="display: flex; align-items: flex-end; gap: 8px; padding: 0 16px 12px; flex-wrap: wrap;">
+          {% csrf_token %}
+          <input type="hidden" name="producto" value="{{ item.producto.id }}">
+          <input type="hidden" name="comentario" value="">
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <span style="font-size: 11px; color: #6b6a65;">Cantidad sobrante</span>
+            <input type="text" name="sobrante" placeholder="Ej: 8 unidades" required style="width: 160px; padding: 6px 10px; font-size: 13px; border: 0.5px solid rgba(0,0,0,.2); border-radius: 8px;">
+          </div>
+          <button type="submit" style="padding: 6px 14px; font-size: 13px; border: 0.5px solid rgba(0,0,0,.2); border-radius: 8px; background: #fff; cursor: pointer;">
+            Guardar
+          </button>
+          <span style="
+            font-size: 11px; padding: 4px 8px; border-radius: 8px;
+            background: {% if item.producto.comportamiento_stock == 'stock' %}#EAF3DE{% elif item.producto.comportamiento_stock == 'devuelve' %}#E6F1FB{% else %}#FCEBEB{% endif %};
+            color: {% if item.producto.comportamiento_stock == 'stock' %}#3B6D11{% elif item.producto.comportamiento_stock == 'devuelve' %}#0C447C{% else %}#791F1F{% endif %};
+          ">
+            {% if item.producto.comportamiento_stock == 'stock' %}El sobrante vuelve al stock
+            {% elif item.producto.comportamiento_stock == 'devuelve' %}Se espera devolución a cocina
+            {% else %}El sobrante se descarta{% endif %}
+          </span>
+        </form>
+      </div>
+    {% endfor %}
+
+    <div style="margin-bottom: 1.5rem;"></div>
+  {% endfor %}
+
+  {% if not stock %}
+    <div style="padding: 40px; text-align: center; color: #6b6a65;">
+      No hay productos con stock en este salón.
+    </div>
+  {% endif %}
+
+</div>
 
 {% endblock %}

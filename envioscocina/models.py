@@ -37,27 +37,37 @@ class TipoProducto(models.Model):
 
 # ── 4. PRODUCTOS ─────────────────────────────────────────────
 class Producto(models.Model):
+
+    COMPORTAMIENTO_CHOICES = [
+        ('stock',    'Impacta stock'),         # bebidas, cosas que quedan y se trackean
+        ('aviso',    'Solo aviso de llegada'), # milanesa, comida descartable, no importa el stock
+        ('devuelve', 'Se devuelve'),            # va al salón y vuelve a la cocina
+    ]
+
     nombre = models.CharField(max_length=200, verbose_name="Nombre del producto")
     departamento = models.ForeignKey(Departamento, on_delete=models.CASCADE, related_name='productos', verbose_name="Departamento/Isla")
     tipo = models.ForeignKey(TipoProducto, on_delete=models.CASCADE, related_name='productos', verbose_name="Tipo")
-    cantidad_gramos = models.CharField(max_length=100, blank=True, null=True, verbose_name="Cantidad o gramos", 
+    cantidad_gramos = models.CharField(max_length=100, blank=True, null=True, verbose_name="Cantidad o gramos",
                                        help_text="Ej: 200g, 10 unidades, 1 bandeja, 8 piezas")
     check_1 = models.BooleanField(default=False, verbose_name="Check 1")
-    es_devolvible = models.BooleanField(default=True)
     detalle = models.TextField(blank=True, null=True, verbose_name="Detalle adicional")
-    se_puede_reusar = models.BooleanField(
-        default=False,
-        verbose_name="Se puede reusar",
-        help_text="True para bebidas, False para comida")
-    
+
+    comportamiento_stock = models.CharField(
+        max_length=20,
+        choices=COMPORTAMIENTO_CHOICES,
+        default='aviso',
+        verbose_name="Comportamiento en stock",
+        help_text="Define cómo impacta este producto en el stock del salón"
+    )
+
     def clean(self):
         if self.tipo and self.tipo.departamento != self.departamento:
             raise ValidationError(f"El tipo '{self.tipo.nombre}' no pertenece al departamento '{self.departamento.nombre}'")
-    
+
     def save(self, *args, **kwargs):
         self.clean()
         super().save(*args, **kwargs)
-    
+
     def __str__(self):
         base = self.nombre
         if self.cantidad_gramos:
@@ -67,7 +77,7 @@ class Producto(models.Model):
         return base
 
 
-# ── 5. ENVÍOS (CON FECHA DE EVENTO) ────────────────────────────────
+## ── 5. ENVÍOS (CON FECHA DE EVENTO) ────────────────────────────────
 class Envio(models.Model):
     ESTADO_CHOICES = [
         ('pendiente', 'Pendiente'),
@@ -91,6 +101,12 @@ class Envio(models.Model):
     
     # Campos opcionales para observación del salón
     observacion = models.TextField(blank=True, null=True, verbose_name="Observación del salón")
+    
+    # ========== NUEVOS CAMPOS ==========
+    tipo_evento = models.CharField(max_length=100, blank=True, null=True, verbose_name="Tipo de evento")
+    plan_evento = models.CharField(max_length=100, blank=True, null=True, verbose_name="Plan del evento")
+    cantidad_invitados = models.IntegerField(null=True, blank=True, verbose_name="Cantidad de invitados")
+    # ===================================
 
     def enviar(self):
         self.estado = 'enviado'
@@ -117,13 +133,17 @@ class Envio(models.Model):
         return f"Envío {self.id} → {self.destino.nombre} [{self.estado}]{evento}"
 
 
-# ── 6. DETALLE DEL ENVÍO ────────────────────────────────
+# ── 6. DETALLE DEL ENVÍO (MODIFICADO) ────────────────────────────────
 class DetalleEnvio(models.Model):
     envio = models.ForeignKey(Envio, on_delete=models.CASCADE, related_name='detalles')
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
     cantidad = models.CharField(max_length=100, blank=True, null=True, 
                                 verbose_name="Cantidad para este envío",
                                 help_text="Ej: 200g, 5 unidades, 2 bandejas")
+    # ========== NUEVO CAMPO ==========
+    cantidad_usada_stock = models.CharField(max_length=100, blank=True, null=True, default='0',
+                                            verbose_name="Cantidad usada del stock del salón")
+    # ==================================
     check_incluido = models.BooleanField(default=True, verbose_name="Incluido en envío")
     observacion = models.CharField(max_length=200, blank=True, null=True)
 
@@ -132,7 +152,6 @@ class DetalleEnvio(models.Model):
         cantidad_str = f" - {self.cantidad}" if self.cantidad else ""
         producto_str = self.producto.cantidad_gramos if self.producto.cantidad_gramos else self.producto.nombre
         return f"{check} {producto_str}{cantidad_str}"
-
 
 # ── 7. STOCK POR SALÓN ─────────────────────────────────────────────
 class StockSalon(models.Model):

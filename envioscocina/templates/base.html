@@ -10,11 +10,17 @@
     :root {
       --bg:       #f5f4f1;
       --surface:  #ffffff;
-      --border:   rgba(0,0,0,.1);
+      --border:   rgba(0,0,0,.08);
       --text:     #1a1a18;
       --muted:    #6b6a65;
       --accent:   #1a1a18;
-      --radius:   10px;
+      --accent-hover: #2c2c2a;
+      --radius:   12px;
+      --radius-sm: 8px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.04);
+      --shadow-md: 0 4px 8px rgba(0,0,0,.04), 0 2px 4px rgba(0,0,0,.02);
+      
+      /* Estados */
       --info-bg:  #e6f1fb; --info-fg:  #185fa5;
       --warn-bg:  #faeeda; --warn-fg:  #854f0b;
       --ok-bg:    #eaf3de; --ok-fg:    #3b6d11;
@@ -22,7 +28,7 @@
     }
 
     body {
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
       background: var(--bg);
       color: var(--text);
       font-size: 14px;
@@ -30,140 +36,210 @@
       min-height: 100vh;
     }
 
-    /* ── Topbar ── */
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+    /* ── Topbar mejorado ── */
     .topbar {
       background: var(--surface);
-      border-bottom: 0.5px solid var(--border);
-      padding: 0 20px;
-      height: 52px;
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 56px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       position: sticky;
       top: 0;
-      z-index: 10;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+      background: rgba(255,255,255,.95);
     }
-    .topbar-left { display: flex; align-items: center; gap: 16px; }
-    .topbar-logo { font-weight: 500; font-size: 14px; color: var(--text); text-decoration: none; }
+    .topbar-left { display: flex; align-items: center; gap: 20px; }
+    .topbar-logo { 
+      font-weight: 600; 
+      font-size: 15px; 
+      color: var(--text); 
+      text-decoration: none;
+      letter-spacing: -0.2px;
+    }
+    .topbar-logo:hover { opacity: .7; }
     .topbar-sep  { color: var(--border); font-size: 18px; line-height: 1; }
     .topbar-page { font-size: 13px; color: var(--muted); }
 
-    .topbar-right { display: flex; align-items: center; gap: 12px; }
+    .topbar-right { display: flex; align-items: center; gap: 16px; }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 4px 12px 4px 8px;
+      border-radius: 40px;
+      background: var(--bg);
+    }
     .avatar {
-      width: 28px; height: 28px; border-radius: 50%;
+      width: 32px; height: 32px; border-radius: 50%;
       background: var(--info-bg); color: var(--info-fg);
       display: flex; align-items: center; justify-content: center;
-      font-size: 11px; font-weight: 500;
+      font-size: 12px; font-weight: 600;
     }
-    .user-name  { font-size: 13px; font-weight: 500; }
+    .user-details { line-height: 1.3; }
+    .user-name  { font-size: 13px; font-weight: 600; }
     .user-role  { font-size: 11px; color: var(--muted); }
     .btn-logout {
       font-size: 12px; color: var(--muted);
-      background: none; border: 0.5px solid var(--border);
-      padding: 4px 10px; border-radius: 6px; cursor: pointer;
-      text-decoration: none;
+      background: none; border: 1px solid var(--border);
+      padding: 6px 12px; border-radius: 8px; cursor: pointer;
+      text-decoration: none; transition: all .15s;
     }
-    .btn-logout:hover { background: var(--bg); }
+    .btn-logout:hover { background: var(--bg); color: var(--text); border-color: var(--muted); }
 
-    /* ── Layout ── */
-    .container { max-width: 860px; margin: 0 auto; padding: 24px 20px; }
+    /* ── Layout responsivo ── */
+    .container { 
+      max-width: 1200px; 
+      margin: 0 auto; 
+      padding: 32px 24px; 
+    }
+    
+    @media (max-width: 768px) {
+      .container { padding: 20px 16px; }
+      .topbar { padding: 0 16px; }
+      .user-details { display: none; }
+    }
 
-    /* ── Mensajes ── */
-    .messages { list-style: none; margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px; }
+    /* ── Mensajes animados ── */
+    .messages { list-style: none; margin-bottom: 24px; display: flex; flex-direction: column; gap: 10px; }
     .msg {
-      padding: 10px 14px; border-radius: 8px; font-size: 13px;
-      border: 0.5px solid transparent;
+      padding: 12px 16px; border-radius: 10px; font-size: 13px;
+      border-left: 3px solid transparent;
+      animation: slideIn .3s ease;
     }
-    .msg-success { background: var(--ok-bg);   color: var(--ok-fg);   border-color: var(--ok-fg); }
-    .msg-warning { background: var(--warn-bg); color: var(--warn-fg); border-color: var(--warn-fg); }
-    .msg-error   { background: var(--err-bg);  color: var(--err-fg);  border-color: var(--err-fg); }
-    .msg-info    { background: var(--info-bg); color: var(--info-fg); border-color: var(--info-fg); }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .msg-success { background: var(--ok-bg);   color: var(--ok-fg);   border-left-color: var(--ok-fg); }
+    .msg-warning { background: var(--warn-bg); color: var(--warn-fg); border-left-color: var(--warn-fg); }
+    .msg-error   { background: var(--err-bg);  color: var(--err-fg);  border-left-color: var(--err-fg); }
+    .msg-info    { background: var(--info-bg); color: var(--info-fg); border-left-color: var(--info-fg); }
 
-    /* ── Cards ── */
+    /* ── Cards mejoradas ── */
     .card {
       background: var(--surface);
-      border: 0.5px solid var(--border);
+      border: 1px solid var(--border);
       border-radius: var(--radius);
       overflow: hidden;
+      transition: box-shadow .2s;
+      box-shadow: var(--shadow-sm);
     }
+    .card:hover { box-shadow: var(--shadow-md); }
     .card-header {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 14px 18px;
-      border-bottom: 0.5px solid var(--border);
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0,0,0,.01);
     }
-    .card-title { font-size: 14px; font-weight: 500; }
-    .card-body  { padding: 18px; }
+    .card-title { font-size: 15px; font-weight: 600; }
+    .card-body  { padding: 20px; }
 
-    /* ── Botones ── */
+    /* ── Botones mejorados ── */
     .btn {
-      display: inline-flex; align-items: center; gap: 5px;
+      display: inline-flex; align-items: center; gap: 6px;
       font-size: 13px; font-weight: 500;
-      padding: 7px 14px; border-radius: 7px;
-      border: 0.5px solid var(--border);
+      padding: 8px 16px; border-radius: 8px;
+      border: 1px solid var(--border);
       cursor: pointer; text-decoration: none;
-      transition: opacity .15s;
+      transition: all .15s;
+      background: var(--surface);
+      color: var(--text);
     }
-    .btn:hover { opacity: .8; }
+    .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+    .btn:active { transform: translateY(0); }
     .btn-primary   { background: var(--accent); color: #fff; border-color: var(--accent); }
-    .btn-secondary { background: var(--surface); color: var(--text); }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-secondary { background: var(--surface); color: var(--text); border-color: var(--border); }
     .btn-success   { background: var(--ok-bg);   color: var(--ok-fg);   border-color: var(--ok-fg); }
     .btn-danger    { background: var(--err-bg);  color: var(--err-fg);  border-color: var(--err-fg); }
-    .btn-sm        { font-size: 11px; padding: 4px 9px; border-radius: 5px; }
+    .btn-sm        { font-size: 11px; padding: 5px 10px; border-radius: 6px; }
+    .btn:disabled, .btn.disabled { opacity: .5; cursor: not-allowed; transform: none; }
 
-    /* ── Badges de estado ── */
+    /* ── Badges de estado mejorados ── */
     .badge {
       display: inline-block; font-size: 11px; font-weight: 500;
-      padding: 2px 8px; border-radius: 20px;
+      padding: 3px 10px; border-radius: 30px;
+      letter-spacing: -0.1px;
     }
     .badge-pendiente { background: var(--warn-bg); color: var(--warn-fg); }
     .badge-enviado   { background: var(--info-bg); color: var(--info-fg); }
     .badge-aceptado  { background: var(--ok-bg);   color: var(--ok-fg);   }
-    .badge-rechazado { background: var(--err-bg);  color: var(--err-fg);  }
+    .badge-rechazado,
+    .badge-danger    { background: var(--err-bg);  color: var(--err-fg);  }
 
-    /* ── Forms ── */
-    label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
-    input[type=text], input[type=number], input[type=password],
+    /* ── Forms mejorados ── */
+    label { font-size: 12px; font-weight: 500; color: var(--text); display: block; margin-bottom: 6px; }
+    input[type=text], input[type=number], input[type=password], input[type=date], input[type=datetime-local],
     select, textarea {
       width: 100%; font-size: 13px;
-      padding: 8px 10px;
-      border: 0.5px solid var(--border);
-      border-radius: 7px;
-      background: var(--bg);
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
       color: var(--text);
+      transition: all .15s;
     }
+    input:hover, select:hover, textarea:hover { border-color: var(--muted); }
     input:focus, select:focus, textarea:focus {
       outline: none;
       border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(26,26,24,.1);
     }
-    .form-group { margin-bottom: 14px; }
-    .form-row   { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-group { margin-bottom: 18px; }
+    .form-row   { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    @media (max-width: 640px) { .form-row { grid-template-columns: 1fr; gap: 0; } }
 
-    /* ── Tabla ── */
+    /* ── Tabla mejorada ── */
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th {
-      text-align: left; font-size: 11px; font-weight: 400;
-      color: var(--muted); padding: 6px 0;
-      border-bottom: 0.5px solid var(--border);
+      text-align: left; font-size: 11px; font-weight: 600;
+      color: var(--muted); padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
     }
-    td { padding: 10px 0; border-bottom: 0.5px solid var(--border); }
+    td { padding: 12px 0; border-bottom: 1px solid var(--border); }
     tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(0,0,0,.02); }
+
+    /* ── Utilidades extras ── */
+    .text-muted { color: var(--muted); }
+    .text-small { font-size: 11px; }
+    .mt-2 { margin-top: 8px; }
+    .mt-3 { margin-top: 16px; }
+    .mb-2 { margin-bottom: 8px; }
+    .mb-3 { margin-bottom: 16px; }
+    .flex { display: flex; align-items: center; gap: 12px; }
+    .flex-between { display: flex; justify-content: space-between; align-items: center; }
+    .grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
   </style>
 </head>
 <body>
 
 <header class="topbar">
   <div class="topbar-left">
-    <a href="{% url 'central' %}" class="topbar-logo">Panel</a>
+    <a href="{% url 'central' %}" class="topbar-logo">🏠 Inicio</a>
     {% block breadcrumb %}{% endblock %}
   </div>
   <div class="topbar-right">
     {% if user.is_authenticated %}
-      <div class="avatar">{{ user.username|slice:":2"|upper }}</div>
-      <div>
-        <div class="user-name">{{ user.username }}</div>
-        <div class="user-role">{{ user.perfil.get_rol_display }}</div>
+      <div class="user-info">
+        <div class="avatar">{{ user.username|slice:":2"|upper }}</div>
+        <div class="user-details">
+          <div class="user-name">{{ user.username }}</div>
+          <div class="user-role">{{ user.perfil.get_rol_display }}</div>
+        </div>
       </div>
-      <a href="{% url 'logout' %}" class="btn-logout">Salir</a>
+      <a href="{% url 'logout' %}" class="btn-logout">🚪 Salir</a>
     {% endif %}
   </div>
 </header>

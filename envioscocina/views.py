@@ -107,7 +107,7 @@ def logout_view(request):
 # ─────────────────────────────────────────────
 
 APPS_DISPONIBLES = [
-    {
+     {
         'id': 'envios',
         'nombre': 'Envíos a salones',
         'descripcion': 'Crear y gestionar envíos de productos entre cocina y salones.',
@@ -115,14 +115,7 @@ APPS_DISPONIBLES = [
         'icono': 'envios',
         'roles': ['admin', 'departamento', 'salon'],
     },
-    {
-        'id': 'stock',
-        'nombre': 'Control de stock',
-        'descripcion': 'Ver el stock actual de productos por salón.',
-        'url_name': 'ver_stock',
-        'icono': 'stock',
-        'roles': ['admin', 'departamento', 'salon'],
-    },
+    # ❌ ELIMINADO: Control de stock
     {
         'id': 'consumo',
         'nombre': 'Registrar consumo',
@@ -139,6 +132,7 @@ APPS_DISPONIBLES = [
         'icono': 'historial',
         'roles': ['admin'],
     },
+
 ]
 
 @login_required(login_url='/envioscocina/login/')
@@ -188,8 +182,7 @@ def api_stock_salon(request, salon_id):
         data.append({
             'id': p.id,
             'nombre': p.nombre,
-            'es_devolvible': p.es_devolvible,
-            'se_puede_reusar': p.se_puede_reusar,
+            'comportamiento_stock': p.comportamiento_stock,
             'stock_salon': stock.cantidad if stock else '0',
             'tipo_nombre': p.tipo.nombre if p.tipo else 'OTROS',
             'cantidad_gramos': p.cantidad_gramos or '',
@@ -255,6 +248,7 @@ from django.utils.dateparse import parse_datetime
 
 
 @login_required(login_url='/envioscocina/login/')
+@login_required(login_url='/envioscocina/login/')
 def crear_envio(request):
     if request.user.perfil.rol != 'departamento':
         messages.error(request, "Solo departamento puede crear envíos")
@@ -276,22 +270,18 @@ def crear_envio(request):
 
         salon = get_object_or_404(Salon, id=destino_id)
 
-        # ==========================================================
-        # CREAR ENVÍO DIRECTAMENTE COMO ENVIADO
-        # ==========================================================
         envio = Envio.objects.create(
             origen=request.user.perfil.departamento,
             destino=salon,
             descripcion=descripcion,
             creado_por=request.user,
             estado='enviado',
+            tipo_evento=tipo_evento or '',
+            plan_evento=plan_evento or '',
         )
 
         if fecha_evento:
             envio.fecha_evento = parse_datetime(fecha_evento)
-
-        envio.tipo_evento = tipo_evento or ''
-        envio.plan_evento = plan_evento or ''
 
         if cantidad_invitados:
             try:
@@ -308,94 +298,51 @@ def crear_envio(request):
         productos_agregados = False
 
         for producto in productos:
-            usar_stock_str = request.POST.get(
-                f'usar_stock_{producto.id}',
-                '0'
-            )
-
-            enviar_nuevos_str = request.POST.get(
-                f'enviar_{producto.id}',
-                ''
-            ).strip()
-
-            usar_stock_num = (
-                int(usar_stock_str)
-                if usar_stock_str.isdigit()
-                else 0
-            )
+            usar_stock_str = request.POST.get(f'usar_stock_{producto.id}', '0')
+            enviar_nuevos_str = request.POST.get(f'enviar_{producto.id}', '').strip()
+            usar_stock_num = int(usar_stock_str) if usar_stock_str.isdigit() else 0
 
             if usar_stock_num == 0 and not enviar_nuevos_str:
                 continue
 
             productos_agregados = True
+            cantidad_usada = '0'
 
-            # ======================================================
-            # DESCONTAR STOCK DEL SALÓN
-            # ======================================================
             if usar_stock_num > 0:
                 stock, _ = StockSalon.objects.get_or_create(
                     salon=salon,
                     producto=producto,
                     defaults={'cantidad': '0'}
                 )
-
-                stock_actual_num = extraer_numero(
-                    stock.cantidad or '0'
-                )
-
-                stock_unidad = extraer_unidad(
-                    stock.cantidad or '0 unidades'
-                )
+                stock_actual_num = extraer_numero(stock.cantidad or '0')
+                stock_unidad = extraer_unidad(stock.cantidad or '0 unidades')
 
                 if stock_actual_num >= usar_stock_num:
                     nuevo_stock = stock_actual_num - usar_stock_num
-                    stock.cantidad = (
-                        f"{nuevo_stock} {stock_unidad}"
-                    ).strip()
+                    stock.cantidad = f"{nuevo_stock} {stock_unidad}".strip()
                     stock.save()
+                    cantidad_usada = f"{usar_stock_num} {stock_unidad}".strip()
                 else:
-                    messages.warning(
-                        request,
-                        f"⚠️ No hay suficiente stock de "
-                        f"{producto.nombre}. "
-                        f"Tenés {stock.cantidad} "
-                        f"y querés usar {usar_stock_num}."
-                    )
+                    messages.warning(request, f"⚠️ No hay suficiente stock de {producto.nombre}")
 
-            # ======================================================
-            # CREAR DETALLE DEL ENVÍO
-            # ======================================================
-            if enviar_nuevos_str and enviar_nuevos_str != '0':
-                DetalleEnvio.objects.create(
-                    envio=envio,
-                    producto=producto,
-                    cantidad=enviar_nuevos_str,
-                    check_incluido=True,
-                )
+            # ========== ACÁ ESTÁ EL CAMBIO IMPORTANTE ==========
+            DetalleEnvio.objects.create(
+                envio=envio,
+                producto=producto,
+                cantidad=enviar_nuevos_str if enviar_nuevos_str else '',
+                cantidad_usada_stock=cantidad_usada,
+                check_incluido=True,
+            )
 
         if not productos_agregados:
             envio.delete()
-            messages.warning(
-                request,
-                "No se agregaron productos al envío."
-            )
+            messages.warning(request, "No se agregaron productos al envío.")
         else:
-            messages.success(
-                request,
-                f"✅ Envío #{envio.id} creado y enviado correctamente - "
-                f"{envio.tipo_evento} - {envio.plan_evento}"
-            )
+            messages.success(request, f"✅ Envío #{envio.id} creado y enviado correctamente")
 
         return redirect('lista_envios')
 
-    return render(
-        request,
-        'envios/crear.html',
-        {
-            'salones': salones,
-        }
- 
-    )
+    return render(request, 'envios/crear.html', {'salones': salones})
 # ─────────────────────────────────────────────
 # DETALLE DE UN ENVÍO
 # ─────────────────────────────────────────────
@@ -430,7 +377,6 @@ def enviar_envio(request, envio_id):
 # ─────────────────────────────────────────────
 # ACEPTAR (salón)
 # ─────────────────────────────────────────────
-
 @login_required(login_url='/envioscocina/login/')
 def aceptar_envio(request, envio_id):
     envio = get_object_or_404(Envio, id=envio_id)
@@ -443,31 +389,51 @@ def aceptar_envio(request, envio_id):
         messages.error(request, "Solo se pueden aceptar envíos en estado 'enviado'")
         return redirect('lista_envios')
 
-    # Sumar al stock del salón
     for detalle in envio.detalles.all():
         if not detalle.check_incluido:
             continue
-            
-        stock, created = StockSalon.objects.get_or_create(
-            salon=envio.destino,
-            producto=detalle.producto,
-            defaults={'cantidad': '0'}
-        )
-        
-        if created or stock.cantidad == '0':
-            stock.cantidad = detalle.cantidad
-        else:
-            stock.cantidad = sumar_cantidades(stock.cantidad, detalle.cantidad)
-        stock.save()
+
+        comportamiento = detalle.producto.comportamiento_stock
+
+        if comportamiento == 'stock':
+            # Suma al stock del salón y queda trackeado
+            stock, created = StockSalon.objects.get_or_create(
+                salon=envio.destino,
+                producto=detalle.producto,
+                defaults={'cantidad': '0'}
+            )
+            if created or stock.cantidad == '0':
+                stock.cantidad = detalle.cantidad
+            else:
+                stock.cantidad = sumar_cantidades(stock.cantidad, detalle.cantidad)
+            stock.save()
+
+        elif comportamiento == 'aviso':
+            # Solo se registra que llegó, no toca stock
+            # Opcionalmente podés loguear o no hacer nada
+            pass
+
+        elif comportamiento == 'devuelve':
+            # Se registra en stock pero marcado como "en salón, se espera devolución"
+            # Por ahora suma igual pero podrías tener un modelo aparte para esto
+            stock, created = StockSalon.objects.get_or_create(
+                salon=envio.destino,
+                producto=detalle.producto,
+                defaults={'cantidad': '0'}
+            )
+            if created or stock.cantidad == '0':
+                stock.cantidad = detalle.cantidad
+            else:
+                stock.cantidad = sumar_cantidades(stock.cantidad, detalle.cantidad)
+            stock.save()
 
     envio.aceptar()
-    
-    # Guardar observación si viene del formulario
+
     observacion = request.POST.get('observacion', '')
     if observacion:
         envio.observacion = observacion
         envio.save()
-    
+
     messages.success(request, f"✅ Envío #{envio.id} aceptado y stock actualizado")
     return redirect('lista_envios')
 
@@ -527,12 +493,15 @@ def consumir_producto(request):
             defaults={'cantidad': '0'}
         )
 
-        if producto.se_puede_reusar:
+        if producto.comportamiento_stock == 'stock':
             stock.cantidad = cantidad_sobrante
             messages.success(request, f"✅ {producto.nombre}: sobró {cantidad_sobrante}. Queda en stock.")
-        else:
+        elif producto.comportamiento_stock == 'devuelve':
+            stock.cantidad = cantidad_sobrante
+            messages.success(request, f"🔄 {producto.nombre}: sobró {cantidad_sobrante}. Se espera devolución a cocina.")
+        else:  # aviso
             stock.cantidad = "0"
-            messages.warning(request, f"⚠️ {producto.nombre}: comida sobrante se descartó.")
+            messages.warning(request, f"⚠️ {producto.nombre}: sobrante se descartó.")
 
         stock.save()
 
@@ -544,20 +513,16 @@ def consumir_producto(request):
         )
 
         return redirect('ver_stock')
-    
+
     return redirect('ver_stock')
 
-
-# ─────────────────────────────────────────────
-# VER STOCK
-# ─────────────────────────────────────────────
 
 @login_required(login_url='/envioscocina/login/')
 def ver_stock(request):
     if request.user.perfil.rol == 'salon':
         stock = StockSalon.objects.filter(
             salon=request.user.perfil.salon,
-            producto__se_puede_reusar=True
+            producto__comportamiento_stock__in=['stock', 'devuelve']
         ).select_related('producto')
         template = 'consumir.html'
     elif request.user.perfil.rol in ('admin', 'departamento'):

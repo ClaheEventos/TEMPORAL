@@ -27,8 +27,7 @@ class TipoProductoAdmin(admin.ModelAdmin):
 
 @admin.register(Producto)
 class ProductoAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'departamento', 'tipo', 'es_devolvible')
-
+    list_display = ('nombre', 'departamento', 'tipo', 'comportamiento_stock')
 
 @admin.register(Envio)
 class EnvioAdmin(admin.ModelAdmin):

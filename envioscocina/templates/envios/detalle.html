@@ -288,7 +288,6 @@
     }
   }
 </style>
-
 <div class="detalle-card">
   <div class="detalle-header">
     <h2>📦 Envío #{{ envio.id }}</h2>
@@ -311,29 +310,45 @@
     <div class="info-item">
       <span class="info-label">⚡ Estado</span>
       <span class="info-value">
-        <span class="badge-estado badge-{{ envio.estado }}">
-          {{ envio.get_estado_display }}
+        <span class="badge-estado 
+          {% if envio.estado == 'rechazado' %}badge-danger{% else %}badge-{{ envio.estado }}{% endif %}">
+          {% if envio.estado == 'rechazado' %}
+            Faltante
+          {% else %}
+            {{ envio.get_estado_display }}
+          {% endif %}
         </span>
       </span>
     </div>
+    
     {% if envio.fecha_evento %}
     <div class="info-item">
       <span class="info-label">🎉 Fecha del evento</span>
       <span class="info-value">{{ envio.fecha_evento|date:"d/m/Y H:i" }}</span>
     </div>
     {% endif %}
+    
+    {% if envio.tipo_evento %}
+    <div class="info-item">
+      <span class="info-label">🏷️ Tipo de evento</span>
+      <span class="info-value">{{ envio.tipo_evento }}</span>
+    </div>
+    {% endif %}
+    
     {% if envio.plan_evento %}
     <div class="info-item">
       <span class="info-label">📋 Plan del evento</span>
-      <span class="info-value">{{ envio.plan_evento.nombre }}</span>
+      <span class="info-value">{{ envio.plan_evento }}</span>
     </div>
     {% endif %}
+    
     {% if envio.cantidad_invitados %}
     <div class="info-item">
       <span class="info-label">👥 Invitados</span>
       <span class="info-value">{{ envio.cantidad_invitados }} personas</span>
     </div>
     {% endif %}
+    
     {% if envio.descripcion %}
     <div class="info-item">
       <span class="info-label">📝 Descripción</span>
@@ -342,6 +357,7 @@
     {% endif %}
   </div>
 
+  <!-- PRODUCTOS DEL ENVÍO -->
   <div class="seccion">
     <div class="seccion-titulo">
       <span>📋</span> Productos del envío
@@ -351,7 +367,8 @@
         <tr>
           <th style="width: 40px">✓</th>
           <th>Producto</th>
-          <th>Cantidad</th>
+          <th>📦 Enviado nuevo</th>
+          <th>🏪 Usado del stock</th>
           <th>Devoluble</th>
         </tr>
       </thead>
@@ -362,28 +379,50 @@
             <span class="checkbox-icon {% if d.check_incluido %}checkbox-si{% else %}checkbox-no{% endif %}">
               {% if d.check_incluido %}✓{% else %}✗{% endif %}
             </span>
-          </td>
-          <td>
+           </td>
+           <td>
             <div class="producto-nombre">{{ d.producto.nombre }}</div>
             {% if d.producto.cantidad_gramos %}
             <div class="producto-detalle">{{ d.producto.cantidad_gramos }}</div>
             {% endif %}
-          </td>
-          <td>{{ d.cantidad|default:"-" }}</td>
-          <td>
+            <div class="producto-comportamiento">
+              {% if d.producto.comportamiento_stock == 'stock' %}
+                <span style="background:#2e7d32;color:white;padding:2px 6px;border-radius:4px;font-size:10px;">🍹 Impacta stock</span>
+              {% elif d.producto.comportamiento_stock == 'devuelve' %}
+                <span style="background:#1565c0;color:white;padding:2px 6px;border-radius:4px;font-size:10px;">🔄 Se devuelve</span>
+              {% else %}
+                <span style="background:#6c757d;color:white;padding:2px 6px;border-radius:4px;font-size:10px;">🍔 Solo aviso</span>
+              {% endif %}
+            </div>
+           </td>
+           <td>
+            {% if d.cantidad %}
+              <strong style="color: #28a745;">{{ d.cantidad }}</strong>
+            {% else %}
+              <span style="color: #6c757d;">—</span>
+            {% endif %}
+           </td>
+           <td>
+            {% if d.cantidad_usada_stock and d.cantidad_usada_stock != '0' %}
+              <strong style="color: #17a2b8;">{{ d.cantidad_usada_stock }}</strong>
+            {% else %}
+              <span style="color: #6c757d;">—</span>
+            {% endif %}
+           </td>
+           <td>
             {% if d.producto.es_devolvible %}
             <span style="color: #28a745;">✓ Sí</span>
             {% else %}
             <span style="color: #dc3545;">✗ No</span>
             {% endif %}
-          </td>
-        </tr>
+           </td>
+         </tr>
         {% empty %}
-        <tr>
-          <td colspan="4" style="text-align: center; color: #6c757d;">
+         <tr>
+          <td colspan="5" style="text-align: center; color: #6c757d;">
             No hay productos en este envío
-          </td>
-        </tr>
+           </td>
+         </tr>
         {% endfor %}
       </tbody>
     </table>
@@ -401,16 +440,16 @@
           <th>Cantidad</th>
           <th>Horas</th>
           <th>Costo total</th>
-        </tr>
+         </tr>
       </thead>
       <tbody>
         {% for emp in envio.empleados_asignados.all %}
-        <tr>
+         <tr>
           <td>{{ emp.tipo_empleado.nombre }}</td>
           <td>{{ emp.cantidad }}</td>
           <td>{{ emp.horas_trabajadas }}</td>
           <td>${{ emp.costo_total|floatformat:2 }}</td>
-        </tr>
+         </tr>
         {% endfor %}
       </tbody>
     </table>
@@ -476,14 +515,7 @@
         </div>
       {% endif %}
 
-      {% if user.perfil.rol == 'departamento' and envio.estado == 'aceptado' %}
-        <form method="post" action="{% url 'entregar_envio' envio.id %}" style="display:inline;">
-          {% csrf_token %}
-          <button type="submit" class="btn-moderno btn-success">
-            ✅ Marcar como entregado
-          </button>
-        </form>
-      {% endif %}
+      <!-- ✅ ELIMINADO el botón de "Marcar como entregado" porque no existe la vista -->
     </div>
   </div>
 </div>

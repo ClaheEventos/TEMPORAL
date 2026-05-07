@@ -29,18 +29,27 @@
             <!-- 🔍 FILTROS - Todos los roles ven los filtros -->
             <div style="display: flex; gap: 6px; flex-wrap: wrap;">
                 {% for estado, label in estados %}
-                    <a
-                        href="?{% if estado %}estado={{ estado }}{% endif %}"
-                        style="
-                            font-size: 11px;
-                            padding: 3px 9px;
-                            border-radius: 20px;
-                            text-decoration: none;
-                            border: 0.5px solid {% if estado_activo == estado or estado_activo == 'todos' and not estado %}#1a1a18{% else %}rgba(0,0,0,.15){% endif %};
-                            background: {% if estado_activo == estado or estado_activo == 'todos' and not estado %}#1a1a18{% else %}#fff{% endif %};
-                            color: {% if estado_activo == estado or estado_activo == 'todos' and not estado %}#fff{% else %}#6b6a65{% endif %};
-                        "
-                    >{{ label }}</a>
+                    <!-- Ocultar el filtro de "Entregados" -->
+                    {% if estado != 'entregado' %}
+                        <a
+                            href="?{% if estado %}estado={{ estado }}{% endif %}"
+                            style="
+                                font-size: 11px;
+                                padding: 3px 9px;
+                                border-radius: 20px;
+                                text-decoration: none;
+                                border: 0.5px solid {% if estado_activo == estado or estado_activo == 'todos' and not estado %}#1a1a18{% else %}rgba(0,0,0,.15){% endif %};
+                                background: {% if estado_activo == estado or estado_activo == 'todos' and not estado %}#1a1a18{% else %}#fff{% endif %};
+                                color: {% if estado_activo == estado or estado_activo == 'todos' and not estado %}#fff{% else %}#6b6a65{% endif %};
+                            "
+                        >
+                            {% if estado == 'rechazado' %}
+                                Faltante
+                            {% else %}
+                                {{ label }}
+                            {% endif %}
+                        </a>
+                    {% endif %}
                 {% endfor %}
             </div>
         </div>
@@ -53,89 +62,100 @@
         {% endif %}
     </div>
 
-    <!-- 📦 LISTADO -->
+    <!-- 📦 LISTADO - Ocultar los envíos con estado 'entregado' -->
     {% if envios %}
         {% for envio in envios %}
-        <div style="
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 18px;
-            border-bottom: 0.5px solid rgba(0,0,0,.07);
-        ">
+            {% if envio.estado != 'entregado' %}
+            <div style="
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 12px 18px;
+                border-bottom: 0.5px solid rgba(0,0,0,.07);
+            ">
 
-            <!-- ID -->
-            <div style="font-size: 11px; color: #6b6a65; min-width: 28px;">
-                #{{ envio.id }}
-            </div>
-
-            <!-- INFO -->
-            <div style="flex: 1; min-width: 0;">
-                <div style="font-size: 13px; font-weight: 500;">
-                    {{ envio.origen }} → {{ envio.destino }}
+                <!-- ID -->
+                <div style="font-size: 11px; color: #6b6a65; min-width: 28px;">
+                    #{{ envio.id }}
                 </div>
 
-                <div style="font-size: 11px; color: #6b6a65;">
-                    Creado: {{ envio.fecha_creacion|date:"d/m/Y H:i" }}
-                    
-                    {% if envio.fecha_evento %}
-                        · 🗓️ Evento: {{ envio.fecha_evento|date:"d/m/Y H:i" }}
-                    {% endif %}
-                    
-                    {% if envio.descripcion %}
-                        · {{ envio.descripcion|truncatechars:50 }}
-                    {% endif %}
-                </div>
-
-                <!-- Productos -->
-                <div style="font-size: 11px; color: #6b6a65;">
-                    {% for d in envio.detalles.all %}
-                        {% if d.check_incluido %}
-                            ✓
-                        {% else %}
-                            ✗
-                        {% endif %}
-                        {{ d.producto.nombre }}:
-                        {% if d.cantidad %}
-                            {{ d.cantidad }}
-                        {% else %}
-                            {{ d.producto.cantidad_gramos|default:"-" }}
-                        {% endif %}
-                        {% if not forloop.last %}, {% endif %}
-                    {% endfor %}
-                </div>
-
-                <!-- OBSERVACIÓN -->
-                {% if envio.observacion %}
-                    <div style="font-size: 11px; color: #854f0b;">
-                        Obs: {{ envio.observacion|truncatechars:80 }}
+                <!-- INFO -->
+                <div style="flex: 1; min-width: 0;">
+                    <div style="font-size: 13px; font-weight: 500;">
+                        {{ envio.origen }} → {{ envio.destino }}
                     </div>
-                {% endif %}
+
+                    <div style="font-size: 11px; color: #6b6a65;">
+                        Creado: {{ envio.fecha_creacion|date:"d/m/Y H:i" }}
+                        
+                        {% if envio.fecha_evento %}
+                            · 🗓️ Evento: {{ envio.fecha_evento|date:"d/m/Y H:i" }}
+                        {% endif %}
+                        
+                        {% if envio.descripcion %}
+                            · {{ envio.descripcion|truncatechars:50 }}
+                        {% endif %}
+                    </div>
+
+                    <!-- Productos -->
+                    <div style="font-size: 11px; color: #6b6a65;">
+                        {% for d in envio.detalles.all %}
+                            {% if d.check_incluido %}
+                                ✓
+                            {% else %}
+                                ✗
+                            {% endif %}
+                            {{ d.producto.nombre }}:
+                            {% if d.cantidad %}
+                                {{ d.cantidad }}
+                            {% else %}
+                                {{ d.producto.cantidad_gramos|default:"-" }}
+                            {% endif %}
+                            {% if not forloop.last %}, {% endif %}
+                        {% endfor %}
+                    </div>
+
+                    <!-- OBSERVACIÓN -->
+                    {% if envio.observacion %}
+                        <div style="font-size: 11px; color: #854f0b;">
+                            Obs: {{ envio.observacion|truncatechars:80 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- ESTADO (VISUAL: rechazado se ve como "Faltante") -->
+                <span class="badge 
+                    {% if envio.estado == 'rechazado' %}
+                        badge-danger
+                    {% else %}
+                        badge-{{ envio.estado }}
+                    {% endif %}">
+                    {% if envio.estado == 'rechazado' %}
+                        Faltante
+                    {% else %}
+                        {{ envio.get_estado_display }}
+                    {% endif %}
+                </span>
+
+                <!-- ⚙️ ACCIONES -->
+                <div style="display: flex; gap: 6px; flex-shrink: 0;">
+                    <!-- VER - Todos los roles pueden ver -->
+                    <a href="{% url 'detalle_envio' envio.id %}" class="btn btn-secondary btn-sm">
+                        Ver
+                    </a>
+
+                    <!-- DEPARTAMENTO: Enviar si está pendiente -->
+                    {% if user.perfil.rol == 'departamento' and envio.estado == 'pendiente' %}
+                        <form method="post" action="{% url 'enviar_envio' envio.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                Enviar →
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
             </div>
-
-            <!-- ESTADO -->
-            <span class="badge badge-{{ envio.estado }}">
-                {{ envio.get_estado_display }}
-            </span>
-
-            <!-- ⚙️ ACCIONES -->
-            <div style="display: flex; gap: 6px; flex-shrink: 0;">
-                <!-- VER - Todos los roles pueden ver -->
-                <a href="{% url 'detalle_envio' envio.id %}" class="btn btn-secondary btn-sm">
-                    Ver
-                </a>
-
-                <!-- DEPARTAMENTO: Enviar si está pendiente -->
-                {% if user.perfil.rol == 'departamento' and envio.estado == 'pendiente' %}
-                    <form method="post" action="{% url 'enviar_envio' envio.id %}">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-primary btn-sm">
-                            Enviar →
-                        </button>
-                    </form>
-                {% endif %}
-            </div>
-        </div>
+            {% endif %}
         {% endfor %}
     {% else %}
         <div style="padding: 40px; text-align: center; color: #6b6a65;">
