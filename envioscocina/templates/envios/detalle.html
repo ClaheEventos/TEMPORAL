@@ -132,6 +132,36 @@
     margin-top: 3px;
   }
   
+  /* ========== ESTILOS PARA CHECK VISUAL ========== */
+  .visual-check-label {
+    display: inline-block;
+    cursor: pointer;
+  }
+  
+  .visual-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: #28a745;
+    transition: all 0.2s;
+  }
+  
+  .visual-checkbox:checked {
+    accent-color: #28a745;
+    transform: scale(1.1);
+  }
+  
+  /* Fila destacada cuando el check está marcado */
+  tr.checked-row {
+    background-color: #e8f5e9 !important;
+    transition: background-color 0.2s;
+  }
+  
+  tr.checked-row:hover {
+    background-color: #c8e6c9 !important;
+  }
+  /* ============================================= */
+  
   .checkbox-icon {
     width: 20px;
     height: 20px;
@@ -288,6 +318,7 @@
     }
   }
 </style>
+
 <div class="detalle-card">
   <div class="detalle-header">
     <h2>📦 Envío #{{ envio.id }}</h2>
@@ -365,67 +396,83 @@
     <table class="tabla-moderna">
       <thead>
         <tr>
-          <th style="width: 40px">✓</th>
+          <th style="width: 50px">✓ Visual</th>
+          <th style="width: 40px">DB</th>
           <th>Producto</th>
           <th>📦 Enviado nuevo</th>
           <th>🏪 Usado del stock</th>
-          <th>Devoluble</th>
+          <th>Comportamiento</th>
         </tr>
       </thead>
       <tbody>
         {% for d in envio.detalles.all %}
-        <tr>
+        <tr class="producto-row" data-producto-id="{{ d.producto.id }}">
+          <td style="text-align: center">
+            <label class="visual-check-label">
+              <input type="checkbox" class="visual-checkbox" data-producto-id="{{ d.producto.id }}">
+            </label>
+          </td>
           <td style="text-align: center">
             <span class="checkbox-icon {% if d.check_incluido %}checkbox-si{% else %}checkbox-no{% endif %}">
               {% if d.check_incluido %}✓{% else %}✗{% endif %}
             </span>
-           </td>
-           <td>
+          </td>
+          <td>
             <div class="producto-nombre">{{ d.producto.nombre }}</div>
             {% if d.producto.cantidad_gramos %}
             <div class="producto-detalle">{{ d.producto.cantidad_gramos }}</div>
             {% endif %}
-            <div class="producto-comportamiento">
-              {% if d.producto.comportamiento_stock == 'stock' %}
-                <span style="background:#2e7d32;color:white;padding:2px 6px;border-radius:4px;font-size:10px;">🍹 Impacta stock</span>
-              {% elif d.producto.comportamiento_stock == 'devuelve' %}
-                <span style="background:#1565c0;color:white;padding:2px 6px;border-radius:4px;font-size:10px;">🔄 Se devuelve</span>
-              {% else %}
-                <span style="background:#6c757d;color:white;padding:2px 6px;border-radius:4px;font-size:10px;">🍔 Solo aviso</span>
-              {% endif %}
-            </div>
-           </td>
-           <td>
+          </td>
+          <td>
             {% if d.cantidad %}
               <strong style="color: #28a745;">{{ d.cantidad }}</strong>
             {% else %}
               <span style="color: #6c757d;">—</span>
             {% endif %}
-           </td>
-           <td>
+          </td>
+          <td>
             {% if d.cantidad_usada_stock and d.cantidad_usada_stock != '0' %}
               <strong style="color: #17a2b8;">{{ d.cantidad_usada_stock }}</strong>
             {% else %}
               <span style="color: #6c757d;">—</span>
             {% endif %}
-           </td>
-           <td>
-            {% if d.producto.es_devolvible %}
-            <span style="color: #28a745;">✓ Sí</span>
+          </td>
+          <td>
+            {% if d.producto.comportamiento_stock == 'stock' %}
+              <span style="background:#2e7d32;color:white;padding:2px 6px;border-radius:4px;font-size:10px;">🍹 Impacta stock</span>
+            {% elif d.producto.comportamiento_stock == 'devuelve' %}
+              <span style="background:#1565c0;color:white;padding:2px 6px;border-radius:4px;font-size:10px;">🔄 Se devuelve</span>
             {% else %}
-            <span style="color: #dc3545;">✗ No</span>
+              <span style="background:#6c757d;color:white;padding:2px 6px;border-radius:4px;font-size:10px;">🍔 Solo aviso</span>
             {% endif %}
-           </td>
-         </tr>
+          </td>
+        </tr>
         {% empty %}
-         <tr>
-          <td colspan="5" style="text-align: center; color: #6c757d;">
+        <tr>
+          <td colspan="6" style="text-align: center; color: #6c757d;">
             No hay productos en este envío
-           </td>
-         </tr>
+          </td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>
+    
+    <!-- Leyenda de ayuda visual -->
+    <div style="margin-top: 15px; padding: 10px; background: #e9ecef; border-radius: 8px; font-size: 12px;">
+      <strong>🎯 Ayuda visual:</strong> 
+      <span style="display: inline-flex; align-items: center; gap: 5px; margin-left: 10px;">
+        <input type="checkbox" checked disabled style="accent-color: #28a745; transform: scale(0.9);"> 
+        <span style="color: #2e7d32;">Marcado (fila verde)</span>
+      </span>
+      <span style="display: inline-flex; align-items: center; gap: 5px; margin-left: 15px;">
+        <input type="checkbox" disabled style="transform: scale(0.9);"> 
+        <span style="color: #6c757d;">Sin marcar</span>
+      </span>
+      <span style="display: inline-flex; align-items: center; gap: 5px; margin-left: 15px;">
+        <span class="checkbox-icon checkbox-si" style="width: 18px; height: 18px; font-size: 12px;">✓</span>
+        <span style="color: #155724;">Check de base de datos</span>
+      </span>
+    </div>
   </div>
 
   {% if envio.empleados_asignados.all %}
@@ -440,16 +487,16 @@
           <th>Cantidad</th>
           <th>Horas</th>
           <th>Costo total</th>
-         </tr>
+        </tr>
       </thead>
       <tbody>
         {% for emp in envio.empleados_asignados.all %}
-         <tr>
-          <td>{{ emp.tipo_empleado.nombre }}</td>
-          <td>{{ emp.cantidad }}</td>
-          <td>{{ emp.horas_trabajadas }}</td>
-          <td>${{ emp.costo_total|floatformat:2 }}</td>
-         </tr>
+          <tr>
+            <td>{{ emp.tipo_empleado.nombre }}</td>
+            <td>{{ emp.cantidad }}</td>
+            <td>{{ emp.horas_trabajadas }}</td>
+            <td>${{ emp.costo_total|floatformat:2 }}</td>
+          </tr>
         {% endfor %}
       </tbody>
     </table>
@@ -514,8 +561,6 @@
           </form>
         </div>
       {% endif %}
-
-      <!-- ✅ ELIMINADO el botón de "Marcar como entregado" porque no existe la vista -->
     </div>
   </div>
 </div>
@@ -546,5 +591,44 @@
   });
 </script>
 {% endif %}
+
+<script>
+  // ========== CHECK VISUAL (SOLO FRONTEND) ==========
+  document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.visual-checkbox');
+    
+    // Recuperar estado guardado localmente
+    checkboxes.forEach(checkbox => {
+      const productoId = checkbox.getAttribute('data-producto-id');
+      const savedState = localStorage.getItem(`visual_check_${productoId}_${window.location.pathname}`);
+      
+      if (savedState === 'true') {
+        checkbox.checked = true;
+        const row = checkbox.closest('.producto-row');
+        if (row) row.classList.add('checked-row');
+      }
+      
+      // Aplicar estilo inicial si estaba marcado por defecto
+      if (checkbox.checked) {
+        const row = checkbox.closest('.producto-row');
+        if (row) row.classList.add('checked-row');
+      }
+      
+      // Evento al cambiar el check
+      checkbox.addEventListener('change', function() {
+        const row = this.closest('.producto-row');
+        const productoId = this.getAttribute('data-producto-id');
+        
+        if (this.checked) {
+          if (row) row.classList.add('checked-row');
+          localStorage.setItem(`visual_check_${productoId}_${window.location.pathname}`, 'true');
+        } else {
+          if (row) row.classList.remove('checked-row');
+          localStorage.setItem(`visual_check_${productoId}_${window.location.pathname}`, 'false');
+        }
+      });
+    });
+  });
+</script>
 
 {% endblock %}
