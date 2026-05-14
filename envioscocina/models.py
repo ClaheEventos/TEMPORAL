@@ -39,9 +39,9 @@ class TipoProducto(models.Model):
 class Producto(models.Model):
 
     COMPORTAMIENTO_CHOICES = [
-        ('stock',    'Impacta stock'),         # bebidas, cosas que quedan y se trackean
-        ('aviso',    'Solo aviso de llegada'), # milanesa, comida descartable, no importa el stock
-        ('devuelve', 'Se devuelve'),            # va al salón y vuelve a la cocina
+        ('stock',    'Impacta stock'),
+        ('aviso',    'Solo aviso de llegada'),
+        ('devuelve', 'Se devuelve'),
     ]
 
     nombre = models.CharField(max_length=200, verbose_name="Nombre del producto")
@@ -77,16 +77,17 @@ class Producto(models.Model):
         return base
 
 
-## ── 5. ENVÍOS (CON FECHA DE EVENTO) ────────────────────────────────
+## ── 5. ENVÍOS ────────────────────────────────────────────────
 class Envio(models.Model):
     ESTADO_CHOICES = [
         ('pendiente', 'Pendiente'),
+        ('preparado', 'Preparado'),
         ('enviado', 'Enviado'),
         ('aceptado', 'Aceptado'),
         ('rechazado', 'Rechazado'),
         ('entregado', 'Entregado'),
     ]
-
+    
     origen = models.ForeignKey(Departamento, on_delete=models.CASCADE, related_name='envios_salientes')
     destino = models.ForeignKey(Salon, on_delete=models.CASCADE, related_name='envios_recibidos')
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pendiente')
@@ -99,25 +100,26 @@ class Envio(models.Model):
     fecha_respuesta = models.DateTimeField(null=True, blank=True)
     fecha_entregado = models.DateTimeField(null=True, blank=True)
     
-    # Campos opcionales para observación del salón
     observacion = models.TextField(blank=True, null=True, verbose_name="Observación del salón")
     
-    # ========== NUEVOS CAMPOS ==========
     tipo_evento = models.CharField(max_length=100, blank=True, null=True, verbose_name="Tipo de evento")
     plan_evento = models.CharField(max_length=100, blank=True, null=True, verbose_name="Plan del evento")
     cantidad_invitados = models.IntegerField(null=True, blank=True, verbose_name="Cantidad de invitados")
-    # ===================================
 
+    def preparar(self):
+        self.estado = 'preparado'
+        self.save()
+    
     def enviar(self):
         self.estado = 'enviado'
         self.fecha_envio = timezone.now()
         self.save()
-
+    
     def aceptar(self):
         self.estado = 'aceptado'
         self.fecha_respuesta = timezone.now()
         self.save()
-
+    
     def rechazar(self):
         self.estado = 'rechazado'
         self.fecha_respuesta = timezone.now()
@@ -133,17 +135,15 @@ class Envio(models.Model):
         return f"Envío {self.id} → {self.destino.nombre} [{self.estado}]{evento}"
 
 
-# ── 6. DETALLE DEL ENVÍO (MODIFICADO) ────────────────────────────────
+# ── 6. DETALLE DEL ENVÍO ────────────────────────────────────
 class DetalleEnvio(models.Model):
     envio = models.ForeignKey(Envio, on_delete=models.CASCADE, related_name='detalles')
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
     cantidad = models.CharField(max_length=100, blank=True, null=True, 
                                 verbose_name="Cantidad para este envío",
                                 help_text="Ej: 200g, 5 unidades, 2 bandejas")
-    # ========== NUEVO CAMPO ==========
     cantidad_usada_stock = models.CharField(max_length=100, blank=True, null=True, default='0',
                                             verbose_name="Cantidad usada del stock del salón")
-    # ==================================
     check_incluido = models.BooleanField(default=True, verbose_name="Incluido en envío")
     observacion = models.CharField(max_length=200, blank=True, null=True)
 
@@ -173,6 +173,7 @@ class PerfilUsuario(models.Model):
     ROL_CHOICES = [
         ('admin', 'Administrador'),
         ('departamento', 'Departamento'),
+        ('empaquetado', 'Empaquetado'),  
         ('salon', 'Salón'),
     ]
 
@@ -198,27 +199,20 @@ class PerfilUsuario(models.Model):
         return f"{self.usuario.username} ({self.rol})"
 
 
-# ── 9. CONSUMO POR SALÓN (MODIFICADO CON FECHA DEL EVENTO) ──────────────────
+# ── 9. CONSUMO POR SALÓN ────────────────────────────────────────
 class ConsumoSalon(models.Model):
     salon = models.ForeignKey(Salon, on_delete=models.CASCADE, related_name='consumos')
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
     cantidad = models.CharField(max_length=100, verbose_name="Cantidad consumida",
                                 help_text="Ej: 200g, 5 unidades, 2 porciones")
     
-    # Referencia al envío que originó este consumo
     envio = models.ForeignKey(Envio, on_delete=models.SET_NULL, null=True, blank=True, related_name='consumos')
-    
-    # Fecha del evento (se copia automáticamente del envío)
     fecha_evento = models.DateTimeField(null=True, blank=True, verbose_name="Fecha del evento",
                                         help_text="Fecha del evento asociado a este consumo")
-    
-    # Fecha del sistema (cuando se registró el consumo)
     fecha_registro = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de registro")
-    
     comentario = models.TextField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
-        # Si tiene un envío asociado, copiar la fecha del evento automáticamente
         if self.envio and self.envio.fecha_evento:
             self.fecha_evento = self.envio.fecha_evento
         super().save(*args, **kwargs)
@@ -232,3 +226,6 @@ class ConsumoSalon(models.Model):
         verbose_name = "Consumo por Salón"
         verbose_name_plural = "Consumos por Salón"
         ordering = ['-fecha_evento', '-fecha_registro']
+
+
+        

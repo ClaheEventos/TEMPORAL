@@ -15,4 +15,9 @@ urlpatterns = [
     path('consumir/', views.consumir_producto, name='consumir_producto'),
     path('stock/', views.ver_stock, name='ver_stock'),
     path('reporte/', views.reporte_consumo, name='reporte_consumo'),
+    path('envio/<int:envio_id>/preparar/', views.preparar_envio, name='preparar_envio'),  # ← AGREGAR ESTA LÍNEA
+    path('envio/<int:envio_id>/eliminar/', views.eliminar_envio, name='eliminar_envio'),
+
+    path('envio/<int:envio_id>/entregar/', views.entregar_envio, name='entregar_envio'),
+
 ]

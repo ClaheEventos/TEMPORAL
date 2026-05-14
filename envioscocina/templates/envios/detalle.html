@@ -76,10 +76,11 @@
   }
   
   .badge-pendiente { background: #fff3cd; color: #856404; }
-  .badge-enviado { background: #cce5ff; color: #004085; }
+  .badge-preparado { background: #cce5ff; color: #004085; }
+  .badge-enviado { background: #cfe2ff; color: #084298; }
+  .badge-entregado { background: #e3f2fd; color: #0d47a1; }
   .badge-aceptado { background: #d4edda; color: #155724; }
   .badge-rechazado { background: #f8d7da; color: #721c24; }
-  .badge-entregado { background: #d1ecf1; color: #0c5460; }
   
   .seccion {
     padding: 20px 25px;
@@ -96,80 +97,69 @@
     gap: 8px;
   }
   
-  .tabla-moderna {
-    width: 100%;
-    border-collapse: collapse;
+  .productos-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
   }
   
-  .tabla-moderna th {
-    text-align: left;
-    padding: 12px 15px;
-    background: #f8f9fa;
-    font-weight: 600;
-    font-size: 13px;
-    color: #495057;
-    border-bottom: 2px solid #dee2e6;
-  }
-  
-  .tabla-moderna td {
-    padding: 12px 15px;
-    border-bottom: 1px solid #e9ecef;
-    font-size: 13px;
-  }
-  
-  .tabla-moderna tr:hover {
-    background: #f8f9fa;
-  }
-  
-  .producto-nombre {
-    font-weight: 500;
-    color: #212529;
-  }
-  
-  .producto-detalle {
-    font-size: 11px;
-    color: #6c757d;
-    margin-top: 3px;
-  }
-  
-  /* ========== ESTILOS PARA CHECK VISUAL ========== */
-  .visual-check-label {
-    display: inline-block;
-    cursor: pointer;
-  }
-  
-  .visual-checkbox {
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-    accent-color: #28a745;
+  .producto-card {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    padding: 15px;
     transition: all 0.2s;
   }
   
-  .visual-checkbox:checked {
+  .producto-card.checked-row {
+    background: #e8f5e9;
+    border-color: #28a745;
+  }
+  
+  .producto-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  .producto-nombre {
+    font-weight: 600;
+    font-size: 16px;
+    color: #212529;
+    flex: 1;
+  }
+  
+  .producto-detalle {
+    font-size: 12px;
+    color: #6c757d;
+    margin-top: 4px;
+  }
+  
+  .producto-check {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .visual-checkbox {
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
     accent-color: #28a745;
-    transform: scale(1.1);
   }
-  
-  /* Fila destacada cuando el check está marcado */
-  tr.checked-row {
-    background-color: #e8f5e9 !important;
-    transition: background-color 0.2s;
-  }
-  
-  tr.checked-row:hover {
-    background-color: #c8e6c9 !important;
-  }
-  /* ============================================= */
   
   .checkbox-icon {
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     font-size: 14px;
+    font-weight: bold;
   }
   
   .checkbox-si {
@@ -182,12 +172,56 @@
     color: #721c24;
   }
   
+  .producto-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e9ecef;
+  }
+  
+  .producto-item {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .producto-item-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: #6c757d;
+    margin-bottom: 4px;
+  }
+  
+  .producto-item-value {
+    font-size: 14px;
+    font-weight: 500;
+    word-break: break-word;
+  }
+  
+  .producto-item-value strong {
+    font-size: 15px;
+  }
+  
+  .comportamiento-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  
+  .comportamiento-stock { background: #2e7d32; color: white; }
+  .comportamiento-devuelve { background: #1565c0; color: white; }
+  .comportamiento-aviso { background: #6c757d; color: white; }
+  
   .respuesta-card {
     background: #f8f9fa;
     border-left: 4px solid #28a745;
     padding: 15px;
     margin-top: 10px;
-    border-radius: 6px;
+    border-radius: 8px;
   }
   
   .footer-acciones {
@@ -201,9 +235,9 @@
   }
   
   .btn-moderno {
-    padding: 8px 20px;
-    border-radius: 6px;
-    font-size: 13px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
     font-weight: 500;
     border: none;
     cursor: pointer;
@@ -214,52 +248,31 @@
     gap: 8px;
   }
   
-  .btn-moderno:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  .btn-moderno:active {
+    transform: scale(0.98);
   }
   
-  .btn-secondary {
-    background: #6c757d;
-    color: white;
-  }
-  
-  .btn-primary {
-    background: #007bff;
-    color: white;
-  }
-  
-  .btn-success {
-    background: #28a745;
-    color: white;
-  }
-  
-  .btn-danger {
-    background: #dc3545;
-    color: white;
-  }
+  .btn-secondary { background: #6c757d; color: white; }
+  .btn-primary { background: #007bff; color: white; }
+  .btn-info { background: #17a2b8; color: white; }
+  .btn-success { background: #28a745; color: white; }
+  .btn-warning { background: #ffc107; color: #212529; }
+  .btn-danger { background: #dc3545; color: white; }
   
   .grupo-acciones {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
-    align-items: flex-start;
+    align-items: center;
   }
   
   .textarea-moderna {
-    padding: 8px 12px;
+    padding: 10px 12px;
     border: 1px solid #dee2e6;
-    border-radius: 6px;
-    font-size: 13px;
+    border-radius: 8px;
+    font-size: 14px;
     width: 280px;
     font-family: inherit;
-    transition: all 0.2s;
-  }
-  
-  .textarea-moderna:focus {
-    outline: none;
-    border-color: #80bdff;
-    box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
   }
   
   .textarea-moderna.error {
@@ -278,28 +291,89 @@
     display: block;
   }
   
+  .ayuda-visual {
+    margin-top: 15px;
+    padding: 10px;
+    background: #e9ecef;
+    border-radius: 8px;
+    font-size: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: center;
+  }
+  
   @media (max-width: 768px) {
+    .detalle-header {
+      padding: 15px;
+    }
+    
+    .detalle-header h2 {
+      font-size: 20px;
+    }
+    
     .info-grid {
       grid-template-columns: 1fr;
       gap: 12px;
+      padding: 15px;
+    }
+    
+    .seccion {
+      padding: 15px;
+    }
+    
+    .producto-grid {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    
+    .producto-header {
+      flex-direction: column;
+    }
+    
+    .producto-check {
+      width: 100%;
+      justify-content: space-between;
     }
     
     .footer-acciones {
       flex-direction: column;
-      align-items: stretch;
+      padding: 15px;
+    }
+    
+    .btn-moderno {
+      width: 100%;
+      justify-content: center;
+    }
+    
+    .grupo-acciones {
+      width: 100%;
+      flex-direction: column;
+    }
+    
+    .grupo-acciones form,
+    .grupo-acciones div {
+      width: 100%;
     }
     
     .textarea-moderna {
       width: 100%;
     }
     
-    .tabla-moderna {
-      font-size: 11px;
+    .ayuda-visual {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .producto-nombre {
+      font-size: 15px;
     }
     
-    .tabla-moderna th,
-    .tabla-moderna td {
-      padding: 8px 10px;
+    .producto-item-value {
+      font-size: 13px;
     }
   }
   
@@ -308,21 +382,13 @@
     .btn-moderno {
       display: none;
     }
-    
-    .detalle-card {
-      box-shadow: none;
-    }
-    
-    .info-grid {
-      background: white;
-    }
   }
 </style>
 
 <div class="detalle-card">
   <div class="detalle-header">
     <h2>📦 Envío #{{ envio.id }}</h2>
-    <p>Detalle completo del envío y gestión de estado</p>
+    <p>Detalle completo del envío</p>
   </div>
 
   <div class="info-grid">
@@ -335,48 +401,42 @@
       <span class="info-value">{{ envio.destino.nombre }}</span>
     </div>
     <div class="info-item">
-      <span class="info-label">📅 Fecha de creación</span>
+      <span class="info-label">📅 Creado</span>
       <span class="info-value">{{ envio.fecha_creacion|date:"d/m/Y H:i" }}</span>
     </div>
     <div class="info-item">
       <span class="info-label">⚡ Estado</span>
       <span class="info-value">
         <span class="badge-estado 
-          {% if envio.estado == 'rechazado' %}badge-danger{% else %}badge-{{ envio.estado }}{% endif %}">
-          {% if envio.estado == 'rechazado' %}
-            Faltante
-          {% else %}
-            {{ envio.get_estado_display }}
-          {% endif %}
+          {% if envio.estado == 'pendiente' %}badge-pendiente
+          {% elif envio.estado == 'preparado' %}badge-preparado
+          {% elif envio.estado == 'enviado' %}badge-enviado
+          {% elif envio.estado == 'entregado' %}badge-entregado
+          {% elif envio.estado == 'aceptado' %}badge-aceptado
+          {% elif envio.estado == 'rechazado' %}badge-rechazado
+          {% endif %}">
+          {% if envio.estado == 'pendiente' %}⏳ Pendiente
+          {% elif envio.estado == 'preparado' %}📦 Preparado
+          {% elif envio.estado == 'enviado' %}🚚 Enviado
+          {% elif envio.estado == 'entregado' %}📬 Entregado
+          {% elif envio.estado == 'aceptado' %}✅ Aceptado
+          {% elif envio.estado == 'rechazado' %}❌ Rechazado
+          {% else %}{{ envio.get_estado_display }}{% endif %}
         </span>
       </span>
     </div>
     
     {% if envio.fecha_evento %}
     <div class="info-item">
-      <span class="info-label">🎉 Fecha del evento</span>
+      <span class="info-label">🎉 Evento</span>
       <span class="info-value">{{ envio.fecha_evento|date:"d/m/Y H:i" }}</span>
     </div>
     {% endif %}
     
     {% if envio.tipo_evento %}
     <div class="info-item">
-      <span class="info-label">🏷️ Tipo de evento</span>
+      <span class="info-label">🏷️ Tipo</span>
       <span class="info-value">{{ envio.tipo_evento }}</span>
-    </div>
-    {% endif %}
-    
-    {% if envio.plan_evento %}
-    <div class="info-item">
-      <span class="info-label">📋 Plan del evento</span>
-      <span class="info-value">{{ envio.plan_evento }}</span>
-    </div>
-    {% endif %}
-    
-    {% if envio.cantidad_invitados %}
-    <div class="info-item">
-      <span class="info-label">👥 Invitados</span>
-      <span class="info-value">{{ envio.cantidad_invitados }} personas</span>
     </div>
     {% endif %}
     
@@ -388,120 +448,82 @@
     {% endif %}
   </div>
 
-  <!-- PRODUCTOS DEL ENVÍO -->
+  <!-- PRODUCTOS -->
   <div class="seccion">
     <div class="seccion-titulo">
       <span>📋</span> Productos del envío
     </div>
-    <table class="tabla-moderna">
-      <thead>
-        <tr>
-          <th style="width: 50px">✓ Visual</th>
-          <th style="width: 40px">DB</th>
-          <th>Producto</th>
-          <th>📦 Enviado nuevo</th>
-          <th>🏪 Usado del stock</th>
-          <th>Comportamiento</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for d in envio.detalles.all %}
-        <tr class="producto-row" data-producto-id="{{ d.producto.id }}">
-          <td style="text-align: center">
-            <label class="visual-check-label">
-              <input type="checkbox" class="visual-checkbox" data-producto-id="{{ d.producto.id }}">
-            </label>
-          </td>
-          <td style="text-align: center">
-            <span class="checkbox-icon {% if d.check_incluido %}checkbox-si{% else %}checkbox-no{% endif %}">
-              {% if d.check_incluido %}✓{% else %}✗{% endif %}
-            </span>
-          </td>
-          <td>
+    
+    <div class="productos-container">
+      {% for d in envio.detalles.all %}
+      <div class="producto-card producto-row" data-producto-id="{{ d.producto.id }}">
+        <div class="producto-header">
+          <div>
             <div class="producto-nombre">{{ d.producto.nombre }}</div>
             {% if d.producto.cantidad_gramos %}
             <div class="producto-detalle">{{ d.producto.cantidad_gramos }}</div>
             {% endif %}
-          </td>
-          <td>
-            {% if d.cantidad %}
-              <strong style="color: #28a745;">{{ d.cantidad }}</strong>
-            {% else %}
-              <span style="color: #6c757d;">—</span>
-            {% endif %}
-          </td>
-          <td>
-            {% if d.cantidad_usada_stock and d.cantidad_usada_stock != '0' %}
-              <strong style="color: #17a2b8;">{{ d.cantidad_usada_stock }}</strong>
-            {% else %}
-              <span style="color: #6c757d;">—</span>
-            {% endif %}
-          </td>
-          <td>
-            {% if d.producto.comportamiento_stock == 'stock' %}
-              <span style="background:#2e7d32;color:white;padding:2px 6px;border-radius:4px;font-size:10px;">🍹 Impacta stock</span>
-            {% elif d.producto.comportamiento_stock == 'devuelve' %}
-              <span style="background:#1565c0;color:white;padding:2px 6px;border-radius:4px;font-size:10px;">🔄 Se devuelve</span>
-            {% else %}
-              <span style="background:#6c757d;color:white;padding:2px 6px;border-radius:4px;font-size:10px;">🍔 Solo aviso</span>
-            {% endif %}
-          </td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="6" style="text-align: center; color: #6c757d;">
-            No hay productos en este envío
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+          </div>
+          <div class="producto-check">
+            <label class="visual-check-label">
+              <input type="checkbox" class="visual-checkbox" data-producto-id="{{ d.producto.id }}">
+              <span style="font-size: 11px; margin-left: 5px;">Marcar</span>
+            </label>
+            <span class="checkbox-icon {% if d.check_incluido %}checkbox-si{% else %}checkbox-no{% endif %}">
+              {% if d.check_incluido %}✓ DB{% else %}✗ DB{% endif %}
+            </span>
+          </div>
+        </div>
+        
+        <div class="producto-grid">
+          <div class="producto-item">
+            <span class="producto-item-label">📦 Enviado nuevo</span>
+            <span class="producto-item-value">
+              {% if d.cantidad %}
+                <strong style="color: #28a745;">{{ d.cantidad }}</strong>
+              {% else %}
+                <span style="color: #6c757d;">—</span>
+              {% endif %}
+            </span>
+          </div>
+          <div class="producto-item">
+            <span class="producto-item-label">🏪 Usado del stock</span>
+            <span class="producto-item-value">
+              {% if d.cantidad_usada_stock and d.cantidad_usada_stock != '0' %}
+                <strong style="color: #17a2b8;">{{ d.cantidad_usada_stock }}</strong>
+              {% else %}
+                <span style="color: #6c757d;">—</span>
+              {% endif %}
+            </span>
+          </div>
+          <div class="producto-item">
+            <span class="producto-item-label">🔄 Comportamiento</span>
+            <span class="producto-item-value">
+              {% if d.producto.comportamiento_stock == 'stock' %}
+                <span class="comportamiento-badge comportamiento-stock">📦 Impacta stock</span>
+              {% elif d.producto.comportamiento_stock == 'devuelve' %}
+                <span class="comportamiento-badge comportamiento-devuelve">🔄 Se devuelve</span>
+              {% else %}
+                <span class="comportamiento-badge comportamiento-aviso">📢 Solo aviso</span>
+              {% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <div style="text-align: center; padding: 40px; color: #6c757d;">
+        No hay productos en este envío
+      </div>
+      {% endfor %}
+    </div>
     
-    <!-- Leyenda de ayuda visual -->
-    <div style="margin-top: 15px; padding: 10px; background: #e9ecef; border-radius: 8px; font-size: 12px;">
-      <strong>🎯 Ayuda visual:</strong> 
-      <span style="display: inline-flex; align-items: center; gap: 5px; margin-left: 10px;">
-        <input type="checkbox" checked disabled style="accent-color: #28a745; transform: scale(0.9);"> 
-        <span style="color: #2e7d32;">Marcado (fila verde)</span>
-      </span>
-      <span style="display: inline-flex; align-items: center; gap: 5px; margin-left: 15px;">
-        <input type="checkbox" disabled style="transform: scale(0.9);"> 
-        <span style="color: #6c757d;">Sin marcar</span>
-      </span>
-      <span style="display: inline-flex; align-items: center; gap: 5px; margin-left: 15px;">
-        <span class="checkbox-icon checkbox-si" style="width: 18px; height: 18px; font-size: 12px;">✓</span>
-        <span style="color: #155724;">Check de base de datos</span>
-      </span>
+    <div class="ayuda-visual">
+      <span><strong>🎯 Ayuda:</strong></span>
+      <span>✅ <input type="checkbox" checked disabled style="accent-color: #28a745;"> Marcado (fondo verde)</span>
+      <span>⬜ <input type="checkbox" disabled> Sin marcar</span>
+      <span>📊 <span class="checkbox-icon checkbox-si" style="width: 18px; height: 18px; font-size: 11px;">✓</span> Check DB</span>
     </div>
   </div>
-
-  {% if envio.empleados_asignados.all %}
-  <div class="seccion">
-    <div class="seccion-titulo">
-      <span>👥</span> Personal asignado
-    </div>
-    <table class="tabla-moderna">
-      <thead>
-        <tr>
-          <th>Tipo</th>
-          <th>Cantidad</th>
-          <th>Horas</th>
-          <th>Costo total</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for emp in envio.empleados_asignados.all %}
-          <tr>
-            <td>{{ emp.tipo_empleado.nombre }}</td>
-            <td>{{ emp.cantidad }}</td>
-            <td>{{ emp.horas_trabajadas }}</td>
-            <td>${{ emp.costo_total|floatformat:2 }}</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% endif %}
 
   {% if envio.observacion %}
   <div class="seccion">
@@ -516,67 +538,105 @@
 
   <div class="footer-acciones">
     <a href="{% url 'lista_envios' %}" class="btn-moderno btn-secondary">
-      ← Volver a envíos
+      ← Volver
     </a>
 
     <div class="grupo-acciones">
-      {% if user.perfil.rol == 'departamento' and envio.estado == 'pendiente' %}
-        <form method="post" action="{% url 'enviar_envio' envio.id %}" style="display:inline;">
+      <!-- 1. PREPARAR (empaquetado) -->
+      {% if user.perfil.rol == 'empaquetado' and envio.estado == 'pendiente' %}
+        <form method="post" action="{% url 'preparar_envio' envio.id %}">
           {% csrf_token %}
-          <button type="submit" class="btn-moderno btn-primary">
-            ✈️ Enviar al salón
-          </button>
+          <button type="submit" class="btn-moderno btn-info">📦 Preparar</button>
         </form>
       {% endif %}
 
+      <!-- 2. ENVIAR (departamento) - Aparece SIEMPRE para pendiente y preparado -->
+      {% if user.perfil.rol == 'departamento' and envio.estado == 'preparado' %}
+        <form method="post" action="{% url 'enviar_envio' envio.id %}">
+          {% csrf_token %}
+          <button type="submit" class="btn-moderno btn-primary">🚚 Enviar</button>
+        </form>
+      {% endif %}
+
+      {% if user.perfil.rol == 'departamento' and envio.estado == 'pendiente' %}
+        <form method="post" action="{% url 'enviar_envio' envio.id %}" 
+              onsubmit="return confirm('⚠️ ADVERTENCIA: Este envío NO ha sido preparado por empaquetado. ¿Igual quieres enviarlo?');">
+          {% csrf_token %}
+          <button type="submit" class="btn-moderno btn-warning">⚠️ Enviar (sin preparación)</button>
+        </form>
+      {% endif %}
+
+      <!-- 3. ENTREGAR (salón - recepción física) -->
       {% if user.perfil.rol == 'salon' and envio.estado == 'enviado' %}
-        <div style="display:flex; gap:10px; align-items:flex-start; flex-wrap: wrap;">
-          <div>
-            <textarea 
-              id="observacion"
-              rows="3"
-              placeholder="Escribí aquí tu observación (obligatoria para rechazar)..."
-              class="textarea-moderna"
-              style="width: 300px;"
-            ></textarea>
-            <div class="error-hint" id="error-hint">
-              ⚠️ La observación es obligatoria para rechazar el envío
-            </div>
+        <form method="post" action="{% url 'entregar_envio' envio.id %}" 
+              onsubmit="return confirm('¿Confirmar que el envío ha llegado físicamente al salón?');">
+          {% csrf_token %}
+          <button type="submit" class="btn-moderno btn-warning">📬 Confirmar Entrega</button>
+        </form>
+      {% endif %}
+
+      <!-- 4. ACEPTAR/RECHAZAR (salón - revisión de calidad, SOLO después de entregado) -->
+      {% if user.perfil.rol == 'salon' and envio.estado == 'entregado' %}
+        <div style="width:100%">
+          <textarea 
+            id="observacion"
+            rows="3"
+            placeholder="Observación (obligatoria para RECHAZAR, opcional para ACEPTAR)..."
+            class="textarea-moderna"
+            style="width:100%"
+          ></textarea>
+          <div class="error-hint" id="error-hint-rechazo">⚠️ La observación es obligatoria para Faltante</div>
+          <div style="display:flex; gap:10px; margin-top:10px;">
+            <form method="post" action="{% url 'aceptar_envio' envio.id %}" style="flex:1" id="form-aceptar">
+              {% csrf_token %}
+              <input type="hidden" name="observacion" id="obs-aceptar">
+              <button type="submit" class="btn-moderno btn-success" style="width:100%">
+                ✅ Aceptar (conforme)
+              </button>
+            </form>
+            <form method="post" action="{% url 'rechazar_envio' envio.id %}" style="flex:1" id="form-rechazar">
+              {% csrf_token %}
+              <input type="hidden" name="observacion" id="obs-rechazar">
+              <button type="button" class="btn-moderno btn-danger" style="width:100%">
+                ❌ Faltante De Producto
+              </button>
+            </form>
           </div>
-          
-          <form method="post" action="{% url 'aceptar_envio' envio.id %}" style="display:inline;">
-            {% csrf_token %}
-            <input type="hidden" name="observacion" id="obs-aceptar">
-            <button type="submit" class="btn-moderno btn-success" onclick="document.getElementById('obs-aceptar').value=document.getElementById('observacion').value">
-              ✓ Aceptar envío
-            </button>
-          </form>
-          
-          <form method="post" action="{% url 'rechazar_envio' envio.id %}" style="display:inline;" id="form-rechazar">
-            {% csrf_token %}
-            <input type="hidden" name="observacion" id="obs-rechazar">
-            <button type="button" class="btn-moderno btn-danger" onclick="enviarRechazo()">
-              ✗ Rechazar (falta de productos)
-            </button>
-          </form>
         </div>
+      {% endif %}
+
+      <!-- 5. ELIMINAR (departamento) -->
+      {% if user.perfil.rol == 'departamento' and envio.estado in 'pendiente,preparado,enviado' %}
+        <form method="post" action="{% url 'eliminar_envio' envio.id %}" 
+              onsubmit="return confirm('¿Eliminar envío #{{ envio.id }}?');">
+          {% csrf_token %}
+          <button type="submit" class="btn-moderno btn-danger">🗑️ Eliminar</button>
+        </form>
       {% endif %}
     </div>
   </div>
 </div>
 
-{% if user.perfil.rol == 'salon' and envio.estado == 'enviado' %}
+<!-- SCRIPTS -->
+{% if user.perfil.rol == 'salon' and envio.estado == 'entregado' %}
 <script>
+  // Manejar ACEPTAR (observación opcional)
+  document.getElementById('form-aceptar').addEventListener('submit', function(e) {
+    const obs = document.getElementById('observacion').value;
+    document.getElementById('obs-aceptar').value = obs;
+  });
+  
+  // Manejar RECHAZAR (observación obligatoria)
   function enviarRechazo() {
     const obsTextarea = document.getElementById('observacion');
-    const errorHint = document.getElementById('error-hint');
+    const errorHint = document.getElementById('error-hint-rechazo');
     const texto = obsTextarea.value.trim();
     
     if (!texto) {
       obsTextarea.classList.add('error');
       errorHint.classList.add('visible');
       obsTextarea.focus();
-      return;
+      return false;
     }
     
     obsTextarea.classList.remove('error');
@@ -585,50 +645,35 @@
     document.getElementById('form-rechazar').submit();
   }
   
-  document.getElementById('observacion').addEventListener('input', function() {
-    this.classList.remove('error');
-    document.getElementById('error-hint').classList.remove('visible');
-  });
+  // Asignar el evento al botón de rechazo
+  document.querySelector('.btn-danger').addEventListener('click', enviarRechazo);
 </script>
 {% endif %}
 
 <script>
-  // ========== CHECK VISUAL (SOLO FRONTEND) ==========
+  // Checkboxes visuales con localStorage
   document.addEventListener('DOMContentLoaded', function() {
     const checkboxes = document.querySelectorAll('.visual-checkbox');
-    
-    // Recuperar estado guardado localmente
     checkboxes.forEach(checkbox => {
       const productoId = checkbox.getAttribute('data-producto-id');
       const savedState = localStorage.getItem(`visual_check_${productoId}_${window.location.pathname}`);
-      
       if (savedState === 'true') {
         checkbox.checked = true;
-        const row = checkbox.closest('.producto-row');
-        if (row) row.classList.add('checked-row');
+        const card = checkbox.closest('.producto-card');
+        if (card) card.classList.add('checked-row');
       }
-      
-      // Aplicar estilo inicial si estaba marcado por defecto
-      if (checkbox.checked) {
-        const row = checkbox.closest('.producto-row');
-        if (row) row.classList.add('checked-row');
-      }
-      
-      // Evento al cambiar el check
       checkbox.addEventListener('change', function() {
-        const row = this.closest('.producto-row');
+        const card = this.closest('.producto-card');
         const productoId = this.getAttribute('data-producto-id');
-        
         if (this.checked) {
-          if (row) row.classList.add('checked-row');
+          if (card) card.classList.add('checked-row');
           localStorage.setItem(`visual_check_${productoId}_${window.location.pathname}`, 'true');
         } else {
-          if (row) row.classList.remove('checked-row');
+          if (card) card.classList.remove('checked-row');
           localStorage.setItem(`visual_check_${productoId}_${window.location.pathname}`, 'false');
         }
       });
     });
   });
 </script>
-
 {% endblock %}

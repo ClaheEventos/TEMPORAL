@@ -7,73 +7,148 @@
 {% endblock %}
 
 {% block content %}
+<style>
+  .badge-entregado {
+    background: #e3f2fd;
+    color: #0d47a1;
+    border: 1px solid #90caf9;
+  }
+  
+  .btn-entregado {
+    background: #0d47a1;
+    color: white;
+  }
+  
+  .btn-entregado:hover {
+    background: #1565c0;
+    color: white;
+  }
+  
+  @keyframes pulse-blue {
+    0% { background: #e3f2fd; }
+    50% { background: #bbdefb; }
+    100% { background: #e3f2fd; }
+  }
+  
+  .envio-destacado {
+    animation: pulse-blue 1s ease-in-out 2;
+  }
+  
+  .pagination {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 20px;
+    padding: 20px;
+    flex-wrap: wrap;
+  }
+  
+  .pagination .btn {
+    padding: 8px 16px;
+  }
+  
+  .pagina-actual {
+    padding: 8px 16px;
+    background: #1a1a18;
+    color: white;
+    border-radius: 8px;
+  }
+</style>
+
 <div class="card">
     
     <h2>📦 Lista de Envíos</h2>
 
     <!-- 🔥 ACCIONES SALÓN -->
     {% if user.perfil.rol == 'salon' %}
-        <a href="{% url 'ver_stock' %}" class="btn btn-warning mb-2">
-            🍽️ Consumir productos
-        </a>
+        <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+            <a href="{% url 'ver_stock' %}" class="btn btn-warning">
+                🍽️ Consumir productos
+            </a>
 
-        <a href="{% url 'reporte_consumo' %}" class="btn btn-info mb-2">
-            📊 Ver reporte
-        </a>
+            <a href="{% url 'reporte_consumo' %}" class="btn btn-info">
+                📊 Ver reporte
+            </a>
+        </div>
+        
+        <!-- 📬 BANNER PARA ENTREGADOS PENDIENTES (solo salón) -->
+        {% with entregados_count=envios|length %}
+            {% if estado_activo != 'entregado' and entregados_count > 0 %}
+                <div style="background: #e3f2fd; padding: 12px 20px; border-radius: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-left: 4px solid #0d47a1;">
+                    <div>
+                        <strong>📬 Tienes envíos entregados pendientes de revisar:</strong>
+                        <span style="background: #0d47a1; color: white; padding: 4px 12px; border-radius: 20px; margin-left: 10px;">{{ entregados_count }}</span>
+                    </div>
+                    <a href="?estado=entregado" class="btn" style="background: #0d47a1; color: white; padding: 8px 16px; text-decoration: none; border-radius: 8px;">
+                        🔍 Ver Entregados
+                    </a>
+                </div>
+            {% endif %}
+        {% endwith %}
     {% endif %}
 
     <div class="card-header">
         <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
             <span class="card-title">Envíos</span>
 
-            <!-- 🔍 FILTROS - Todos los roles ven los filtros -->
+            <!-- 🔍 FILTROS -->
             <div style="display: flex; gap: 6px; flex-wrap: wrap;">
                 {% for estado, label in estados %}
-                    <!-- Ocultar el filtro de "Entregados" -->
-                    {% if estado != 'entregado' %}
-                        <a
-                            href="?{% if estado %}estado={{ estado }}{% endif %}"
-                            style="
-                                font-size: 11px;
-                                padding: 3px 9px;
-                                border-radius: 20px;
-                                text-decoration: none;
-                                border: 0.5px solid {% if estado_activo == estado or estado_activo == 'todos' and not estado %}#1a1a18{% else %}rgba(0,0,0,.15){% endif %};
-                                background: {% if estado_activo == estado or estado_activo == 'todos' and not estado %}#1a1a18{% else %}#fff{% endif %};
-                                color: {% if estado_activo == estado or estado_activo == 'todos' and not estado %}#fff{% else %}#6b6a65{% endif %};
-                            "
-                        >
-                            {% if estado == 'rechazado' %}
-                                Faltante
-                            {% else %}
-                                {{ label }}
-                            {% endif %}
-                        </a>
-                    {% endif %}
+                    <a
+                        href="?{% if estado %}estado={{ estado }}{% endif %}"
+                        style="
+                            font-size: 11px;
+                            padding: 3px 9px;
+                            border-radius: 20px;
+                            text-decoration: none;
+                            transition: all 0.2s;
+                            border: 0.5px solid {% if estado_activo == estado or estado_activo == 'todos' and not estado %}#1a1a18{% else %}rgba(0,0,0,.15){% endif %};
+                            background: {% if estado_activo == estado or estado_activo == 'todos' and not estado %}#1a1a18{% else %}#fff{% endif %};
+                            color: {% if estado_activo == estado or estado_activo == 'todos' and not estado %}#fff{% else %}#6b6a65{% endif %};
+                        "
+                        {% if estado == 'entregado' and user.perfil.rol == 'salon' %}
+                            style="background: #0d47a1; color: white; border-color: #0d47a1; font-weight: bold;"
+                        {% endif %}
+                    >
+                        {% if estado == 'rechazado' %}
+                            ❌ Faltante
+                        {% elif estado == 'entregado' %}
+                            📬 Entregados
+                        {% elif estado == 'pendiente' %}
+                            ⏳ Pendientes
+                        {% elif estado == 'preparado' %}
+                            📦 Preparados
+                        {% elif estado == 'enviado' %}
+                            🚚 Enviados
+                        {% elif estado == 'aceptado' %}
+                            ✅ Aceptados
+                        {% else %}
+                            📋 Todos
+                        {% endif %}
+                    </a>
                 {% endfor %}
             </div>
         </div>
 
         <!-- ➕ CREAR ENVÍO -->
-        {% if user.perfil.rol == 'departamento' or user.perfil.rol == 'admin' %}
+        {% if user.perfil.rol == 'departamento' %}
             <a href="{% url 'crear_envio' %}" class="btn btn-primary btn-sm">
                 + Nuevo envío
             </a>
         {% endif %}
     </div>
 
-    <!-- 📦 LISTADO - Ocultar los envíos con estado 'entregado' -->
+    <!-- 📦 LISTADO -->
     {% if envios %}
         {% for envio in envios %}
-            {% if envio.estado != 'entregado' %}
             <div style="
                 display: flex;
                 align-items: center;
                 gap: 12px;
                 padding: 12px 18px;
                 border-bottom: 0.5px solid rgba(0,0,0,.07);
+                {% if envio.estado == 'entregado' and user.perfil.rol == 'salon' %}background: #f8fbff;{% endif %}
             ">
-
                 <!-- ID -->
                 <div style="font-size: 11px; color: #6b6a65; min-width: 28px;">
                     #{{ envio.id }}
@@ -99,68 +174,78 @@
 
                     <!-- Productos -->
                     <div style="font-size: 11px; color: #6b6a65;">
-                        {% for d in envio.detalles.all %}
-                            {% if d.check_incluido %}
-                                ✓
-                            {% else %}
-                                ✗
-                            {% endif %}
+                        {% for d in envio.detalles.all|slice:":3" %}
+                            {% if d.check_incluido %}✓{% else %}✗{% endif %}
                             {{ d.producto.nombre }}:
-                            {% if d.cantidad %}
-                                {{ d.cantidad }}
-                            {% else %}
-                                {{ d.producto.cantidad_gramos|default:"-" }}
-                            {% endif %}
+                            {% if d.cantidad %}{{ d.cantidad }}{% else %}{{ d.producto.cantidad_gramos|default:"-" }}{% endif %}
                             {% if not forloop.last %}, {% endif %}
                         {% endfor %}
+                        {% if envio.detalles.all|length > 3 %}...{% endif %}
                     </div>
 
-                    <!-- OBSERVACIÓN -->
                     {% if envio.observacion %}
                         <div style="font-size: 11px; color: #854f0b;">
-                            Obs: {{ envio.observacion|truncatechars:80 }}
+                            💬 Obs: {{ envio.observacion|truncatechars:80 }}
                         </div>
                     {% endif %}
                 </div>
 
-                <!-- ESTADO (VISUAL: rechazado se ve como "Faltante") -->
+                <!-- ESTADO -->
                 <span class="badge 
-                    {% if envio.estado == 'rechazado' %}
-                        badge-danger
-                    {% else %}
-                        badge-{{ envio.estado }}
-                    {% endif %}">
-                    {% if envio.estado == 'rechazado' %}
-                        Faltante
-                    {% else %}
-                        {{ envio.get_estado_display }}
-                    {% endif %}
+                    {% if envio.estado == 'rechazado' %}badge-danger
+                    {% elif envio.estado == 'preparado' %}badge-info
+                    {% elif envio.estado == 'pendiente' %}badge-warning
+                    {% elif envio.estado == 'enviado' %}badge-primary
+                    {% elif envio.estado == 'entregado' %}badge-entregado
+                    {% elif envio.estado == 'aceptado' %}badge-success
+                    {% else %}badge-secondary{% endif %}">
+                    {% if envio.estado == 'rechazado' %}❌ Faltante
+                    {% elif envio.estado == 'preparado' %}📦 Preparado
+                    {% elif envio.estado == 'pendiente' %}⏳ Pendiente
+                    {% elif envio.estado == 'enviado' %}🚚 Enviado
+                    {% elif envio.estado == 'entregado' %}📬 Entregado
+                    {% elif envio.estado == 'aceptado' %}✅ Aceptado
+                    {% else %}{{ envio.get_estado_display }}{% endif %}
                 </span>
 
-                <!-- ⚙️ ACCIONES -->
+                <!-- BOTÓN VER -->
                 <div style="display: flex; gap: 6px; flex-shrink: 0;">
-                    <!-- VER - Todos los roles pueden ver -->
                     <a href="{% url 'detalle_envio' envio.id %}" class="btn btn-secondary btn-sm">
-                        Ver
+                        Ver detalle →
                     </a>
-
-                    <!-- DEPARTAMENTO: Enviar si está pendiente -->
-                    {% if user.perfil.rol == 'departamento' and envio.estado == 'pendiente' %}
-                        <form method="post" action="{% url 'enviar_envio' envio.id %}">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-primary btn-sm">
-                                Enviar →
-                            </button>
-                        </form>
-                    {% endif %}
                 </div>
             </div>
-            {% endif %}
         {% endfor %}
     {% else %}
         <div style="padding: 40px; text-align: center; color: #6b6a65;">
-            No hay envíos para mostrar.
+            {% if estado_activo == 'entregado' %}
+                📬 No hay envíos entregados pendientes de revisar.
+            {% else %}
+                No hay envíos para mostrar.
+            {% endif %}
         </div>
     {% endif %}
 </div>
+
+<!-- PAGINACIÓN - 15 ENVÍOS POR PÁGINA -->
+{% if envios.has_other_pages %}
+<div class="pagination">
+    {% if envios.has_previous %}
+        <a href="?page={{ envios.previous_page_number }}{% if estado_activo != 'todos' %}&estado={{ estado_activo }}{% endif %}" class="btn btn-secondary">
+            ← Anterior
+        </a>
+    {% endif %}
+
+    <span class="pagina-actual">
+        Página {{ envios.number }} de {{ envios.paginator.num_pages }}
+    </span>
+
+    {% if envios.has_next %}
+        <a href="?page={{ envios.next_page_number }}{% if estado_activo != 'todos' %}&estado={{ estado_activo }}{% endif %}" class="btn btn-secondary">
+            Siguiente →
+        </a>
+    {% endif %}
+</div>
+{% endif %}
+
 {% endblock %}

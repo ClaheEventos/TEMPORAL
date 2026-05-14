@@ -1,0 +1,76 @@
+{% for envio in envios %}
+<div style="
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 18px;
+    border-bottom: 0.5px solid rgba(0,0,0,.07);
+    {% if envio.estado == 'entregado' and user.perfil.rol == 'salon' %}background: #f8fbff;{% endif %}
+">
+    <!-- ID -->
+    <div style="font-size: 11px; color: #6b6a65; min-width: 28px;">
+        #{{ envio.id }}
+    </div>
+
+    <!-- INFO -->
+    <div style="flex: 1; min-width: 0;">
+        <div style="font-size: 13px; font-weight: 500;">
+            {{ envio.origen }} → {{ envio.destino }}
+        </div>
+
+        <div style="font-size: 11px; color: #6b6a65;">
+            Creado: {{ envio.fecha_creacion|date:"d/m/Y H:i" }}
+            
+            {% if envio.fecha_evento %}
+                · 🗓️ Evento: {{ envio.fecha_evento|date:"d/m/Y H:i" }}
+            {% endif %}
+            
+            {% if envio.descripcion %}
+                · {{ envio.descripcion|truncatechars:50 }}
+            {% endif %}
+        </div>
+
+        <!-- Productos -->
+        <div style="font-size: 11px; color: #6b6a65;">
+            {% for d in envio.detalles.all|slice:":3" %}
+                {% if d.check_incluido %}✓{% else %}✗{% endif %}
+                {{ d.producto.nombre }}:
+                {% if d.cantidad %}{{ d.cantidad }}{% else %}{{ d.producto.cantidad_gramos|default:"-" }}{% endif %}
+                {% if not forloop.last %}, {% endif %}
+            {% endfor %}
+            {% if envio.detalles.all|length > 3 %}...{% endif %}
+        </div>
+
+        {% if envio.observacion %}
+            <div style="font-size: 11px; color: #854f0b;">
+                💬 Obs: {{ envio.observacion|truncatechars:80 }}
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- ESTADO -->
+    <span class="badge 
+        {% if envio.estado == 'rechazado' %}badge-danger
+        {% elif envio.estado == 'preparado' %}badge-info
+        {% elif envio.estado == 'pendiente' %}badge-warning
+        {% elif envio.estado == 'enviado' %}badge-primary
+        {% elif envio.estado == 'entregado' %}badge-entregado
+        {% elif envio.estado == 'aceptado' %}badge-success
+        {% else %}badge-secondary{% endif %}">
+        {% if envio.estado == 'rechazado' %}❌ Faltante
+        {% elif envio.estado == 'preparado' %}📦 Preparado
+        {% elif envio.estado == 'pendiente' %}⏳ Pendiente
+        {% elif envio.estado == 'enviado' %}🚚 Enviado
+        {% elif envio.estado == 'entregado' %}📬 Entregado
+        {% elif envio.estado == 'aceptado' %}✅ Aceptado
+        {% else %}{{ envio.get_estado_display }}{% endif %}
+    </span>
+
+    <!-- BOTÓN VER -->
+    <div style="display: flex; gap: 6px; flex-shrink: 0;">
+        <a href="{% url 'detalle_envio' envio.id %}" class="btn btn-secondary btn-sm">
+            Ver detalle →
+        </a>
+    </div>
+</div>
+{% endfor %}

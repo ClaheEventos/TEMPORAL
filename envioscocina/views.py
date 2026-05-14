@@ -6,6 +6,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.http import JsonResponse
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 from .models import Envio, DetalleEnvio, Producto, Salon, StockSalon, ConsumoSalon, Departamento, TipoProducto
 
@@ -107,15 +108,14 @@ def logout_view(request):
 # ─────────────────────────────────────────────
 
 APPS_DISPONIBLES = [
-     {
+    {
         'id': 'envios',
         'nombre': 'Envíos a salones',
         'descripcion': 'Crear y gestionar envíos de productos entre cocina y salones.',
         'url_name': 'lista_envios',
         'icono': 'envios',
-        'roles': ['admin', 'departamento', 'salon'],
+        'roles': ['admin', 'departamento', 'empaquetado', 'salon'],
     },
-    # ❌ ELIMINADO: Control de stock
     {
         'id': 'consumo',
         'nombre': 'Registrar consumo',
@@ -132,7 +132,6 @@ APPS_DISPONIBLES = [
         'icono': 'historial',
         'roles': ['admin'],
     },
-
 ]
 
 @login_required(login_url='/envioscocina/login/')
@@ -146,11 +145,15 @@ def central(request):
         app['badge'] = 0
 
         if app['id'] == 'envios':
-            if rol in ('departamento', 'admin'):
-                envios = Envio.objects.filter(estado='pendiente')
-                if rol == 'departamento':
-                    envios = envios.filter(origen=user.perfil.departamento)
-                app['badge'] = envios.count()
+            if rol == 'departamento':
+                app['badge'] = Envio.objects.filter(
+                    estado='pendiente',
+                    origen=user.perfil.departamento
+                ).count()
+            elif rol == 'empaquetado':
+                app['badge'] = Envio.objects.filter(estado='pendiente').count()
+            elif rol == 'admin':
+                app['badge'] = Envio.objects.filter(estado='pendiente').count()
             elif rol == 'salon':
                 app['badge'] = Envio.objects.filter(
                     destino=user.perfil.salon,
@@ -194,25 +197,38 @@ def api_stock_salon(request, salon_id):
 # ─────────────────────────────────────────────
 # LISTA DE ENVÍOS
 # ─────────────────────────────────────────────
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 @login_required(login_url='/envioscocina/login/')
 def lista_envios(request):
     user = request.user
     rol = user.perfil.rol
 
+    # 🔥 FILTRAR ENVÍOS SEGÚN ROL
     if rol == 'admin':
         envios = Envio.objects.all()
     elif rol == 'departamento':
         envios = Envio.objects.filter(origen=user.perfil.departamento)
+    elif rol == 'empaquetado':
+        envios = Envio.objects.filter(estado__in=['pendiente', 'preparado'])
     elif rol == 'salon':
-        envios = Envio.objects.filter(destino=user.perfil.salon)
+        envios = Envio.objects.filter(
+            destino=user.perfil.salon,
+            estado__in=['enviado', 'entregado', 'aceptado', 'rechazado']
+        )
     else:
         envios = Envio.objects.none()
 
     estado = request.GET.get('estado')
+    
+    # 🔥 VISTA POR DEFECTO SEGÚN ROL
     if rol == 'salon' and not estado:
-        envios = envios.filter(estado='enviado')
-        estado_activo = 'enviado'
+        estado_activo = 'todos'
+    elif rol == 'empaquetado' and not estado:
+        envios = envios.filter(estado='pendiente')
+        estado_activo = 'pendiente'
+    elif rol == 'departamento' and not estado:
+        estado_activo = 'todos'
     elif estado:
         envios = envios.filter(estado=estado)
         estado_activo = estado
@@ -221,33 +237,61 @@ def lista_envios(request):
 
     envios = envios.order_by('-fecha_creacion')
 
-    estados = [
-        ('', 'Todos'),
-        ('pendiente', 'Pendientes'),
-        ('enviado', 'Enviados'),
-        ('aceptado', 'Aceptados'),
-        ('rechazado', 'Rechazados'),
-        ('entregado', 'Entregados'),
-    ]
+    # ✅ PAGINACIÓN: 15 ENVÍOS POR PÁGINA
+    paginator = Paginator(envios, 15)
+    page = request.GET.get('page', 1)
+
+    try:
+        envios_page = paginator.page(page)
+    except PageNotAnInteger:
+        envios_page = paginator.page(1)
+    except EmptyPage:
+        envios_page = paginator.page(paginator.num_pages)
+
+    # 🔥 FILTROS DISPONIBLES SEGÚN ROL
+    if rol == 'empaquetado':
+        estados = [
+            ('', 'Todos'),
+            ('pendiente', '⏳ Pendientes'),
+            ('preparado', '📦 Preparados'),
+        ]
+    elif rol == 'salon':
+        estados = [
+            ('', '📋 Todos'),
+            ('enviado', '🚚 Enviados'),
+            ('entregado', '📬 Entregados'),
+            ('aceptado', '✅ Aceptados'),
+            ('rechazado', '❌ Rechazados'),
+        ]
+    else:
+        estados = [
+            ('', '📋 Todos'),
+            ('pendiente', '⏳ Pendientes'),
+            ('preparado', '📦 Preparados'),
+            ('enviado', '🚚 Enviados'),
+            ('entregado', '📬 Entregados'),
+            ('aceptado', '✅ Aceptados'),
+            ('rechazado', '❌ Rechazados'),
+        ]
+
+    puede_preparar = rol in ['empaquetado', 'admin']
+    puede_enviar = rol in ['departamento', 'admin']
+    puede_responder = rol == 'salon'
 
     return render(request, 'envios/lista.html', {
-        'envios': envios,
+        'envios': envios_page,  # ← AHORA ES PAGINADO
         'estado_activo': estado_activo,
         'estados': estados,
+        'puede_preparar': puede_preparar,
+        'puede_enviar': puede_enviar,
+        'puede_responder': puede_responder,
+        'rol': rol,
+        'pagina': envios_page,
     })
-
-
 # ─────────────────────────────────────────────
-# CREAR ENVÍO (CORREGIDO Y FUNCIONAL)
+# CREAR ENVÍO
 # ─────────────────────────────────────────────
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.shortcuts import render, redirect, get_object_or_404
-from django.utils.dateparse import parse_datetime
 
-
-
-@login_required(login_url='/envioscocina/login/')
 @login_required(login_url='/envioscocina/login/')
 def crear_envio(request):
     if request.user.perfil.rol != 'departamento':
@@ -275,7 +319,7 @@ def crear_envio(request):
             destino=salon,
             descripcion=descripcion,
             creado_por=request.user,
-            estado='enviado',
+            estado='pendiente',
             tipo_evento=tipo_evento or '',
             plan_evento=plan_evento or '',
         )
@@ -325,7 +369,6 @@ def crear_envio(request):
                 else:
                     messages.warning(request, f"⚠️ No hay suficiente stock de {producto.nombre}")
 
-            # ========== ACÁ ESTÁ EL CAMBIO IMPORTANTE ==========
             DetalleEnvio.objects.create(
                 envio=envio,
                 producto=producto,
@@ -338,11 +381,34 @@ def crear_envio(request):
             envio.delete()
             messages.warning(request, "No se agregaron productos al envío.")
         else:
-            messages.success(request, f"✅ Envío #{envio.id} creado y enviado correctamente")
+            messages.success(request, f"✅ Envío #{envio.id} creado (pendiente de preparación)")
 
         return redirect('lista_envios')
 
     return render(request, 'envios/crear.html', {'salones': salones})
+
+
+# ─────────────────────────────────────────────
+# PREPARAR ENVÍO (empaquetado)
+# ─────────────────────────────────────────────
+
+@login_required(login_url='/envioscocina/login/')
+def preparar_envio(request, envio_id):
+    envio = get_object_or_404(Envio, id=envio_id)
+    
+    if request.user.perfil.rol not in ['empaquetado', 'admin']:
+        messages.error(request, "No tienes permiso para preparar envíos")
+        return redirect('lista_envios')
+    
+    if envio.estado != 'pendiente':
+        messages.error(request, "Solo se pueden preparar envíos en estado 'pendiente'")
+        return redirect('lista_envios')
+    
+    envio.preparar()
+    messages.success(request, f"✅ Envío #{envio.id} marcado como PREPARADO")
+    return redirect('lista_envios')
+
+
 # ─────────────────────────────────────────────
 # DETALLE DE UN ENVÍO
 # ─────────────────────────────────────────────
@@ -356,27 +422,33 @@ def detalle_envio(request, envio_id):
 # ─────────────────────────────────────────────
 # ENVIAR (departamento)
 # ─────────────────────────────────────────────
-
 @login_required(login_url='/envioscocina/login/')
 def enviar_envio(request, envio_id):
     envio = get_object_or_404(Envio, id=envio_id)
 
-    if request.user.perfil.rol != 'departamento':
+    if request.user.perfil.rol not in ['departamento', 'admin']:
         messages.error(request, "No permitido")
         return redirect('lista_envios')
 
-    if envio.estado != 'pendiente':
-        messages.error(request, "Solo se pueden enviar envíos pendientes")
+    # Permitir enviar desde pendiente o preparado
+    if envio.estado == 'preparado':
+        envio.enviar()
+        messages.success(request, f"✅ Envío #{envio.id} marcado como ENVIADO")
+        
+    elif envio.estado == 'pendiente':
+        envio.enviar()
+        messages.warning(request, f"⚠️ Envío #{envio.id} enviado SIN preparación previa de empaquetado.")
+        
+    else:
+        messages.error(request, f"❌ No se puede enviar el envío en estado '{envio.get_estado_display()}'")
         return redirect('lista_envios')
 
-    envio.enviar()
-    messages.success(request, f"✅ Envío #{envio.id} marcado como enviado")
     return redirect('lista_envios')
-
 
 # ─────────────────────────────────────────────
 # ACEPTAR (salón)
 # ─────────────────────────────────────────────
+
 @login_required(login_url='/envioscocina/login/')
 def aceptar_envio(request, envio_id):
     envio = get_object_or_404(Envio, id=envio_id)
@@ -385,8 +457,9 @@ def aceptar_envio(request, envio_id):
         messages.error(request, "Solo el salón puede aceptar")
         return redirect('lista_envios')
 
-    if envio.estado != 'enviado':
-        messages.error(request, "Solo se pueden aceptar envíos en estado 'enviado'")
+    # ✅ CORREGIDO: ahora permite aceptar en estado 'entregado'
+    if envio.estado != 'entregado':
+        messages.error(request, "Solo se pueden aceptar envíos en estado 'entregado'")
         return redirect('lista_envios')
 
     for detalle in envio.detalles.all():
@@ -396,7 +469,6 @@ def aceptar_envio(request, envio_id):
         comportamiento = detalle.producto.comportamiento_stock
 
         if comportamiento == 'stock':
-            # Suma al stock del salón y queda trackeado
             stock, created = StockSalon.objects.get_or_create(
                 salon=envio.destino,
                 producto=detalle.producto,
@@ -408,14 +480,7 @@ def aceptar_envio(request, envio_id):
                 stock.cantidad = sumar_cantidades(stock.cantidad, detalle.cantidad)
             stock.save()
 
-        elif comportamiento == 'aviso':
-            # Solo se registra que llegó, no toca stock
-            # Opcionalmente podés loguear o no hacer nada
-            pass
-
         elif comportamiento == 'devuelve':
-            # Se registra en stock pero marcado como "en salón, se espera devolución"
-            # Por ahora suma igual pero podrías tener un modelo aparte para esto
             stock, created = StockSalon.objects.get_or_create(
                 salon=envio.destino,
                 producto=detalle.producto,
@@ -439,7 +504,7 @@ def aceptar_envio(request, envio_id):
 
 
 # ─────────────────────────────────────────────
-# RECHAZAR (salón)
+# RECHAZAR (salón) - CORREGIDO para estado 'entregado'
 # ─────────────────────────────────────────────
 
 @login_required(login_url='/envioscocina/login/')
@@ -450,11 +515,11 @@ def rechazar_envio(request, envio_id):
         messages.error(request, "Solo el salón puede rechazar")
         return redirect('lista_envios')
 
-    if envio.estado != 'enviado':
-        messages.error(request, "Solo se pueden rechazar envíos en estado 'enviado'")
+    # ✅ CORREGIDO: ahora permite rechazar en estado 'entregado'
+    if envio.estado != 'entregado':
+        messages.error(request, "Solo se pueden rechazar envíos en estado 'entregado'")
         return redirect('lista_envios')
 
-    # Guardar observación del rechazo
     observacion = request.POST.get('observacion', '')
     if observacion:
         envio.observacion = observacion
@@ -463,7 +528,6 @@ def rechazar_envio(request, envio_id):
     envio.rechazar()
     messages.warning(request, f"❌ Envío #{envio.id} rechazado")
     return redirect('lista_envios')
-
 
 # ─────────────────────────────────────────────
 # CONSUMIR PRODUCTO
@@ -499,7 +563,7 @@ def consumir_producto(request):
         elif producto.comportamiento_stock == 'devuelve':
             stock.cantidad = cantidad_sobrante
             messages.success(request, f"🔄 {producto.nombre}: sobró {cantidad_sobrante}. Se espera devolución a cocina.")
-        else:  # aviso
+        else:
             stock.cantidad = "0"
             messages.warning(request, f"⚠️ {producto.nombre}: sobrante se descartó.")
 
@@ -555,3 +619,107 @@ def reporte_consumo(request):
         'fecha_desde': fecha_desde,
         'fecha_hasta': fecha_hasta,
     })
+
+# ─────────────────────────────────────────────
+# ELIMINAR ENVÍO (departamento: pendiente, preparado, enviado)
+# ─────────────────────────────────────────────
+
+@login_required(login_url='/envioscocina/login/')
+def eliminar_envio(request, envio_id):
+    envio = get_object_or_404(Envio, id=envio_id)
+    
+    user_rol = request.user.perfil.rol
+    
+    # Admin puede eliminar cualquier envío
+    if user_rol == 'admin':
+        pass
+    
+    # Departamento puede eliminar sus envíos en: pendiente, preparado, enviado
+    elif user_rol == 'departamento':
+        # Verificar que sea su departamento
+        if envio.origen != request.user.perfil.departamento:
+            messages.error(request, "No puedes eliminar envíos de otro departamento")
+            return redirect('lista_envios')
+        
+        # Solo puede eliminar en estos estados
+        if envio.estado not in ['pendiente', 'preparado', 'enviado']:
+            messages.error(request, f"No puedes eliminar envíos en estado '{envio.get_estado_display()}'. Solo pendiente, preparado o enviado.")
+            return redirect('lista_envios')
+    
+    # Empaquetado solo puede eliminar en estado pendiente
+    elif user_rol == 'empaquetado':
+        if envio.estado != 'pendiente':
+            messages.error(request, "Solo puedes eliminar envíos en estado 'pendiente'")
+            return redirect('lista_envios')
+    
+    # Salón no puede eliminar
+    else:
+        messages.error(request, "No tienes permiso para eliminar envíos")
+        return redirect('lista_envios')
+    
+    # Guardar ID para el mensaje
+    envio_id_temp = envio.id
+    
+    # Eliminar el envío (los detalles se eliminan en cascada)
+    envio.delete()
+    
+    messages.success(request, f"✅ Envío #{envio_id_temp} eliminado correctamente")
+    return redirect('lista_envios')
+
+
+# ─────────────────────────────────────────────
+# ELIMINAR ENVÍO (versión específica para departamento)
+# ─────────────────────────────────────────────
+
+# ─────────────────────────────────────────────
+# ELIMINAR ENVÍO (solo departamento)
+# ─────────────────────────────────────────────
+
+@login_required(login_url='/envioscocina/login/')
+def eliminar_envio(request, envio_id):
+    envio = get_object_or_404(Envio, id=envio_id)
+    
+    # SOLO departamento puede eliminar
+    if request.user.perfil.rol != 'departamento':
+        messages.error(request, "No tienes permiso para eliminar envíos")
+        return redirect('lista_envios')
+    
+    # Verificar que sea su departamento
+    if envio.origen != request.user.perfil.departamento:
+        messages.error(request, "No puedes eliminar envíos de otro departamento")
+        return redirect('lista_envios')
+    
+    # Solo puede eliminar en estos estados
+    if envio.estado not in ['pendiente', 'preparado', 'enviado']:
+        messages.error(request, "Solo puedes eliminar envíos en estado 'pendiente', 'preparado' o 'enviado'")
+        return redirect('lista_envios')
+    
+    # Eliminar
+    envio_id_temp = envio.id
+    envio.delete()
+    
+    messages.success(request, f"✅ Envío #{envio_id_temp} eliminado correctamente")
+    return redirect('lista_envios')
+
+from django.urls import reverse
+
+@login_required(login_url='/envioscocina/login/')
+def entregar_envio(request, envio_id):
+    """Marca el envío como entregado físicamente en el salón"""
+    envio = get_object_or_404(Envio, id=envio_id)
+    
+    if request.user.perfil.rol not in ['salon', 'admin']:
+        messages.error(request, "Solo el salón puede confirmar la recepción física")
+        return redirect('detalle_envio', envio_id=envio.id)
+    
+    if envio.estado != 'enviado':
+        messages.error(request, "Solo se pueden entregar envíos en estado 'enviado'")
+        return redirect('detalle_envio', envio_id=envio.id)
+    
+    envio.estado = 'entregado'
+    envio.save()
+    
+    messages.success(request, f"✅ Envío #{envio.id} marcado como ENTREGADO")
+    
+    # 🔥 QUEDA EN EL MISMO DETALLE, NO SE VA A LISTA
+    return redirect('detalle_envio', envio_id=envio.id)
