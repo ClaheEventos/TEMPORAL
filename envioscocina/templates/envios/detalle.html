@@ -82,6 +82,17 @@
   .badge-aceptado { background: #d4edda; color: #155724; }
   .badge-rechazado { background: #f8d7da; color: #721c24; }
   
+  .plan-badge {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 25px;
+    font-size: 13px;
+    font-weight: 600;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
   .seccion {
     padding: 20px 25px;
     border-bottom: 1px solid #e9ecef;
@@ -95,6 +106,10 @@
     display: flex;
     align-items: center;
     gap: 8px;
+  }
+  
+  .seccion-evento {
+    background: #f0f7ff;
   }
   
   .productos-container {
@@ -391,6 +406,7 @@
     <p>Detalle completo del envío</p>
   </div>
 
+  <!-- INFORMACIÓN GENERAL -->
   <div class="info-grid">
     <div class="info-item">
       <span class="info-label">📍 Origen</span>
@@ -426,20 +442,6 @@
       </span>
     </div>
     
-    {% if envio.fecha_evento %}
-    <div class="info-item">
-      <span class="info-label">🎉 Evento</span>
-      <span class="info-value">{{ envio.fecha_evento|date:"d/m/Y H:i" }}</span>
-    </div>
-    {% endif %}
-    
-    {% if envio.tipo_evento %}
-    <div class="info-item">
-      <span class="info-label">🏷️ Tipo</span>
-      <span class="info-value">{{ envio.tipo_evento }}</span>
-    </div>
-    {% endif %}
-    
     {% if envio.descripcion %}
     <div class="info-item">
       <span class="info-label">📝 Descripción</span>
@@ -447,6 +449,50 @@
     </div>
     {% endif %}
   </div>
+
+  <!-- SECCIÓN EVENTO (NUEVA - AGRUPADA) -->
+  {% if envio.fecha_evento or envio.tipo_evento or envio.plan_evento or envio.cantidad_invitados %}
+  <div class="seccion seccion-evento">
+    <div class="seccion-titulo">
+      <span>🎯</span> Información del Evento
+    </div>
+    <div class="info-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; background: transparent; padding: 0;">
+      {% if envio.fecha_evento %}
+      <div class="info-item">
+        <span class="info-label">📅 Fecha y hora</span>
+        <span class="info-value">{{ envio.fecha_evento|date:"d/m/Y H:i" }}</span>
+      </div>
+      {% endif %}
+      
+      {% if envio.tipo_evento %}
+      <div class="info-item">
+        <span class="info-label">🏷️ Tipo de evento</span>
+        <span class="info-value">{{ envio.tipo_evento }}</span>
+      </div>
+      {% endif %}
+      
+      {% if envio.plan_evento %}
+      <div class="info-item">
+        <span class="info-label">🍽️ Plan / Menú</span>
+        <span class="info-value">
+          <span class="plan-badge">
+            {{ envio.plan_evento }}
+          </span>
+        </span>
+      </div>
+      {% endif %}
+      
+      {% if envio.cantidad_invitados %}
+      <div class="info-item">
+        <span class="info-label">👥 Cantidad de invitados</span>
+        <span class="info-value">
+          <strong>{{ envio.cantidad_invitados }}</strong> personas
+        </span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
 
   <!-- PRODUCTOS -->
   <div class="seccion">
@@ -525,6 +571,7 @@
     </div>
   </div>
 
+  <!-- RESPUESTA DEL SALÓN -->
   {% if envio.observacion %}
   <div class="seccion">
     <div class="seccion-titulo">
@@ -536,6 +583,7 @@
   </div>
   {% endif %}
 
+  <!-- ACCIONES -->
   <div class="footer-acciones">
     <a href="{% url 'lista_envios' %}" class="btn-moderno btn-secondary">
       ← Volver
@@ -550,7 +598,7 @@
         </form>
       {% endif %}
 
-      <!-- 2. ENVIAR (departamento) - Aparece SIEMPRE para pendiente y preparado -->
+      <!-- 2. ENVIAR (departamento) -->
       {% if user.perfil.rol == 'departamento' and envio.estado == 'preparado' %}
         <form method="post" action="{% url 'enviar_envio' envio.id %}">
           {% csrf_token %}
@@ -575,7 +623,7 @@
         </form>
       {% endif %}
 
-      <!-- 4. ACEPTAR/RECHAZAR (salón - revisión de calidad, SOLO después de entregado) -->
+      <!-- 4. ACEPTAR/RECHAZAR (salón - revisión de calidad) -->
       {% if user.perfil.rol == 'salon' and envio.estado == 'entregado' %}
         <div style="width:100%">
           <textarea 

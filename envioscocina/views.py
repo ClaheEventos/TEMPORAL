@@ -210,7 +210,11 @@ def lista_envios(request):
     elif rol == 'departamento':
         envios = Envio.objects.filter(origen=user.perfil.departamento)
     elif rol == 'empaquetado':
-        envios = Envio.objects.filter(estado__in=['pendiente', 'preparado'])
+        # ✅ CORREGIDO: SOLO su propio departamento
+        envios = Envio.objects.filter(
+            origen=user.perfil.departamento,
+            estado__in=['pendiente', 'preparado']
+        )
     elif rol == 'salon':
         envios = Envio.objects.filter(
             destino=user.perfil.salon,
@@ -279,7 +283,7 @@ def lista_envios(request):
     puede_responder = rol == 'salon'
 
     return render(request, 'envios/lista.html', {
-        'envios': envios_page,  # ← AHORA ES PAGINADO
+        'envios': envios_page,
         'estado_activo': estado_activo,
         'estados': estados,
         'puede_preparar': puede_preparar,
@@ -416,9 +420,37 @@ def preparar_envio(request, envio_id):
 @login_required(login_url='/envioscocina/login/')
 def detalle_envio(request, envio_id):
     envio = get_object_or_404(Envio, id=envio_id)
+    user = request.user
+    rol = user.perfil.rol
+    
+    # 🔥 VERIFICACIÓN DE PERMISOS (igual que en preparar_envio)
+    if rol == 'admin':
+        pass  # Admin puede ver todo
+    
+    elif rol == 'departamento':
+        # Solo puede ver envíos de su propio departamento
+        if envio.origen != user.perfil.departamento:
+            messages.error(request, "No tienes permiso para ver este envío")
+            return redirect('lista_envios')
+    
+    elif rol == 'empaquetado':
+        # Solo puede ver envíos en estado pendiente o preparado
+        if envio.estado not in ['pendiente', 'preparado']:
+            messages.error(request, "Solo puedes ver envíos en estado 'pendiente' o 'preparado'")
+            return redirect('lista_envios')
+    
+    elif rol == 'salon':
+        # Solo puede ver envíos destinados a su salón
+        if envio.destino != user.perfil.salon:
+            messages.error(request, "No tienes permiso para ver este envío")
+            return redirect('lista_envios')
+    
+    else:
+        messages.error(request, "Rol no reconocido")
+        return redirect('central')
+    
+    # Si pasa todas las validaciones, mostrar el detalle
     return render(request, 'envios/detalle.html', {'envio': envio})
-
-
 # ─────────────────────────────────────────────
 # ENVIAR (departamento)
 # ─────────────────────────────────────────────
